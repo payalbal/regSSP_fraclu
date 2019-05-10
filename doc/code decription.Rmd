@@ -1,0 +1,42 @@
+---
+title: "code documentation"
+author: "Simon Kapitza"
+date: "09/05/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### General info
+Scripts are fully commented where necessary. Provided scripts are
+
+* 1_functions.R
+* 1_preprocessing.R
+* 2_gtaptrajectories.R
+* 3_landuse.R
+* 4_SDM.R
+* 5_plots.R
+
+R Scripts include preprocessing, modelling, analysis and plotting for land-use and species distribution models.
+
+#### 1_functions.R
+This script contains all functions used across the present analysis. This script is typcially sourced in the beginning of each other script.
+
+#### 1_preprocessing.R
+This script runs preprocessing of the raw data. Data sources are in Supplementary Table 1 and direct links to data sets are available through the corresponding author upon request. Some preprocessing scripts were conducted in QGIS. A description of these steps is included.
+
+#### 2_gtap_trajectories.R
+This script produces demand trajectories from CGE results for input in the land-use model. It loads CGE outputs for relative changes in land endowments, weights these outputs by FAO estimates of area harvested in 2016 and maps the weighted average of the crop sectors to the cropland class. It also estimates the demand for urban land from worldbank estimates of urban population growth.
+
+#### 3_landuse.R
+This script contains all steps for future simulations of land-use change, as described in the Methods section of the manuscript.
+
+#### 4_SDM.R
+This script contains all steps for SDM models and predictions as described in the Methods section. Steps include the prediction of bias layers, background sampling (for Ausrtralia this is constrained to bioregions adjacent to species occurrences), correlation analysis and variable selection, model building with 5-fold cross-validation, and predictions under different future scenarios, treatments and quartiles of the worldclim data (to capture some of the uncertainty around GCM predictions). The script is set up to run on 12 parallel cores - Australian species take approx. 36 hours to finish, Vietnamese species approximitely 6 hours.
+
+#### 5_plots.R
+All plotting for the main manuscript and SI.
+
+
