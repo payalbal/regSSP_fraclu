@@ -9,7 +9,7 @@ source(file.path(".", "R", "1_functions.R"))
 #1.a File paths to otuputs from preprocessing and some other variables
 data_path <- file.path(".", "RData")
 output_path <- file.path(".", "output")
-country_abbr <- "aus" #aus and vnm
+country_abbr <- "vnm" #aus and vnm
 excludes <- c("pa", "popd", "landuse") #(we don't want these in our predictor sets)
 files <- list.files(data_path, full.names = T)
 
@@ -48,6 +48,7 @@ or_names <- names(covariates)
 bio_inds <- which(grepl(or_names, pattern = "bio"))
 
 #2.c) Rename predictors for model
+old_covnames <- names(covariates)
 names(covariates) <-  paste0("ef_", sprintf("%02d", 1:(nlayers(covariates))))
 
 #2.d) Partition into training and testing set for GLM - 10% of data used to fit models
@@ -63,6 +64,7 @@ for(i in 1:5){
 }
 
 glm.models <- glmModels(formula=forms, family=binomial, data=train.data, obs=obs)
+summary(glm.models)
 
 #2.f) get rid of insignificant predictors and refit
 forms2 <- list()
@@ -73,6 +75,24 @@ for(i in 1:5){
 }
 
 glm.models <- glmModels(formula=forms2, family=binomial, data=train.data, obs=obs)
+summary(glm.models)
+cofs_list <- list()
+for (i in 1:length(glm.models)){
+  cofs <- coefficients(summary(glm.models)[[i]])
+  rownames(cofs) <- c("Intercept", old_covnames[which(names(covariates)%in%rownames(cofs)[-1])])
+  cofs_list[[i]] <- cofs
+}
+
+cofs_list <- do.call("rbind", cofs_list)
+
+if(country_abbr == "aus"){
+cofs_list_out <- list(cofs_list)
+}else if(country_abbr == "vnm"){
+  cofs_list_out[[2]] <- cofs_list
+  cofs_list_out <- do.call("rbind", cofs_list_out)
+}
+
+#write.table(round(cofs_list_out,3), file.path(".", "output", paste0("coeffs_lu.csv")), sep = ",")
 
 #----------------------------------------#
 #####---III. FURTHER MODEL DEFINITIONS####

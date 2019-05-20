@@ -8,9 +8,8 @@ library("matrixStats")
 require("rgdal")
 require("sp")
 
-
 source(file.path(".", "R", "1_functions.R"))
-country_abbr <- "aus" #aus, til and vnm
+country_abbr <- "aus" #this script needs to be run for aus, til and vnm
 mask <- readRDS(file.path(".", "RData", paste0("mask_", country_abbr, ".rds")))
 layer_path <- file.path(".", "RData")
 
@@ -18,7 +17,12 @@ layer_path <- file.path(".", "RData")
 #---I. THINNING OCCURRENCE DATA####
 #---------------------------------#
 
+#GBIF data are available via DOIs:
+#Australia:  https://doi.org/10.15468/dl.khlzmu
+#Tile 29: https://doi.org/10.15468/dl.yapqxq
+#Viet Nam: https://doi.org/10.15468/dl.nt0ftl
 #1) GLOBAL PARAMETERS####
+
 # 1.a) Select country and load GBIF data
 occ <- as.data.frame(fread(paste0("~/OneDrive - The University of Melbourne/PhD - Large Files/PhD - Raw Data/GBIF/gbif_aves_", country_abbr, ".csv"), header = T, select = c("decimallongitude", "decimallatitude", "species"), na.strings=c("NA", "", " ")))
 if(country_abbr == "til"){
@@ -74,6 +78,7 @@ saveRDS(dat, file = paste0(layer_path, "/occ_", country_abbr, ".rds"))
 #-----------------------------#
 
 #2.a) Topography
+#Data available through https://webmap.ornl.gov/ogc/wcsdown.jsp?dg_id=10008_1
 srtm <- raster("~/Dropbox/PhD - Large Files/PhD - Raw Data/Global/srtm_aus_vnm_tile29.tif")
 srtm <- crop(srtm, mask)
 names(srtm) <- "srtm"
@@ -84,6 +89,7 @@ roughness <- terrain(srtm, opt = "roughness")
 terrain <- stack(elevation, slope, roughness)
 
 #2.b) Soil
+#Data availbale through https://daac.ornl.gov/SOILS/guides/igbp-surfaces.html
 soil <- stack(list.files("~/Dropbox/PhD - Large Files/PhD - Raw Data/Global/soil_data/data", pattern = "*.dat", full.names = T))
 crs(soil) <- crs(mask)
 soil <- crop(soil, mask)
@@ -91,9 +97,17 @@ soil <- projectRaster(soil, mask)
 soil <- mask(soil, mask)
 names(soil) <- c( "bulk", "awco", "carb",  "nitro")
 
-#2.c) Distances
-#This part was partially done in QGIS
-#steps:
+#2.c) Distance rasters and protected areas
+#Shortest distance rasters calculated were distance to roads, distance to rivers, distance to built-up areas and distance to lakes.
+
+#Data available through:
+#Global road networks: http://sedac.ciesin.columbia.edu/data/set/groads-global-roads-open-access-v1/data-download#openModal
+#Global drainage systems: http://www.soest.hawaii.edu/wessel/gshhg/
+#GLobal built-up areas: http://ref.data.fao.org/map?entryId=c22837d0-88fd-11da-a88f-000d939bc5d8&tab=metadata
+#Global lakes: http://www.soest.hawaii.edu/wessel/gshhg/
+#Protected areas: http://wcmc.io/wdpa_current_release (downloaded Feb 2018)
+
+#Processing steps:
 #1. combined shapefiles (different levels) in qgis (Levels 2-9 for rivers)
 #2. rasterize in qgis (automatically subsetted from global data set)
 #3. calculate proximity in qqis
@@ -109,12 +123,12 @@ names(soil) <- c( "bulk", "awco", "carb",  "nitro")
 # writeOGR(shp, dsn = "/Users/simon/Dropbox/PhD - Large Files/PhD - Raw Data/Global", layer = name, driver = "ESRI Shapefile", overwrite = T)
 
 #load qgis processed files, and set NA
-# lakes <- raster(paste0("/Users/simon/Dropbox/PhD/Chapter 1/processed data/raw_rasters_rivers_lakes_cl/lakes_", country_abbr, ".tif"))
-# coast <- raster(paste0("/Users/simon/Dropbox/PhD/Chapter 1/processed data/raw_rasters_rivers_lakes_cl/coast_", country_abbr, ".tif"))
-# rivers <- raster(paste0("/Users/simon/Dropbox/PhD/Chapter 1/processed data/raw_rasters_rivers_lakes_cl/rivers_", country_abbr, ".tif"))
-# PA <- raster(paste0("/Users/simon/Dropbox/PhD/Chapter 1/processed data/raw_rasters_rivers_lakes_cl/PA_", country_abbr, ".tif"))
-# roads <- raster(paste0("/Users/simon/Dropbox/PhD/Chapter 1/processed data/raw_rasters_rivers_lakes_cl/PA_", country_abbr, ".tif"))
-# builtup <- raster(paste0("/Users/simon/Dropbox/PhD/Chapter 1/processed data/raw_rasters_rivers_lakes_cl/PA_", country_abbr, ".tif"))
+# lakes <- raster(paste0(raw_rasters_rivers_lakes_cl/lakes_", country_abbr, ".tif"))
+# coast <- raster(paste0(raw_rasters_rivers_lakes_cl/coast_", country_abbr, ".tif"))
+# rivers <- raster(paste0(raw_rasters_rivers_lakes_cl/rivers_", country_abbr, ".tif"))
+# PA <- raster(paste0(raw_rasters_rivers_lakes_cl/PA_", country_abbr, ".tif"))
+# roads <- raster(paste0(raw_rasters_rivers_lakes_cl/PA_", country_abbr, ".tif"))
+# builtup <- raster(paste0(raw_rasters_rivers_lakes_cl/PA_", country_abbr, ".tif"))
 #names <- c("distrivers", "distlakes", "distcoastline", "PA", "distbuiltup", "distroads")
 
 
@@ -123,12 +137,14 @@ distances <- mask(distances, mask)
 
 names(distances) <- c("dibu", "dico", "dila", "diri", "diro")
 rm(elevation, roughness, slope, srtm)
+
 pa <- raster(list.files("~/Dropbox/PhD - Large Files/PhD - Raw Data/Global/preprocessed/", full.names = T, pattern = country_abbr)[6])
 names(pa) <- "pa"
 pa <- mask(pa, mask)
 pa[] <- (pa[] * -1) + 1
 
 #2.d) Population density
+#data available through http://sedac.ciesin.columbia.edu/data/set/grump-v1-population-density
 popdens <- raster("~/Dropbox/PhD - Large Files/PhD - Raw Data/Global/Pop_density/gluds00ag.bil")
 popdens <- crop(popdens, mask, snap = "near")
 extent(popdens) <- extent(mask)
@@ -136,6 +152,7 @@ popdens <- mask(popdens, mask)
 names(popdens) <- "popd"
 
 #2.e) Land use
+#Data available through https://landcover.usgs.gov/global_climatology.php
 world_lu <- raster("~/Dropbox/PhD - Large Files/PhD - Raw Data/Global/LCType.tif")
 lu <- crop(world_lu, mask)
 lu <- projectRaster(lu, mask, method = "ngb")
@@ -170,10 +187,10 @@ names(lu) <- "landuse"
 # 16	Barren or Sparsely Vegetated
 
 #---------------------------#
-#####---III. DYNAMIC DATA####
+#####---III. BIOCLIM DATA####
 #---------------------------#
 
-#3. a) Australia: load tiles from raw data, mosaic, crop and write
+#3. a) Download tiles, mosaic, crop and write
 if(country_abbr == "aus"){
   tiles <- c("39", "310", "311", "49", "410", "411")
 }else if(country_abbr%in%c("vnm", "til")){
@@ -193,9 +210,7 @@ covariates <- stack(terrain, soil, distances, pa, popdens, bioclim,lu)
 saveRDS(covariates, file = paste0(layer_path, "covariates_", country_abbr, ".rds"))
 
 
-#3.b) Get future model predictions
-
-#i) Download
+#3.b) Downlaoad GCM model predictions
 temp_folder <- file.path(".", "temp")
 dir.create(temp_folder)
 regions <- c("aus", "vnm")
@@ -225,7 +240,7 @@ for(i in 1:length(models)){
   rm(vnm_stack, aus_stack)
 }
 
-#ii) Calculate mean and mean +-SD
+#ii) Extract cell-wise quartiles across GCM
 country_abbr <- "aus"
 gcm <- list.files("~/Dropbox/PhD - Large Files/PhD - Raw Data/GCM/", full.names = T, pattern = country_abbr)
 mask <- readRDS(file.path(".", "RData", paste0("mask_", country_abbr, ".rds")))
@@ -263,9 +278,9 @@ for(k in 1:2){
 }
 
 
-#------------------------#
-#####---IV. SYNCING NA####
-#------------------------#
+#------------------------------------------#
+#####---IV. SYNCING NA ACROSS ALL LAYERS####
+#------------------------------------------#
 nas <- list()
 files <- list.files(layer_path, full.names = TRUE, pattern = country_abbr)
 stack <- stack(files[grepl(paste0("(?=.*",country_abbr,")"), files, perl = TRUE)])
@@ -280,9 +295,10 @@ for(i in 1:nlayers(stack)){
 }
 gc()
 
-#-------------------------------------#
-#####---V. MAKING BIOREGIONS RASTER####
-#-------------------------------------#
+#------------------------------------------------------#
+#####---V. MAKING BIOREGIONS RASTER (AUSTRALIA ONLY)####
+#------------------------------------------------------#
+#Data available through http://www.environment.gov.au/fed/catalog/search/resource/downloadData.page?uuid=%7B4A2321F0-DD57-454E-BE34-6FD4BDE64703%7D
 bioreg <- readOGR(file.path("~", "Dropbox", "PhD - Large Files", "PhD - Raw Data", "Australia", "IBRA7_regions", "ibra7_regions.shp"))
 mask <- readRDS(file = file.path(".", "RData", "mask_aus.rds"))
 bioreg_rast <- mask
@@ -304,14 +320,14 @@ saveRDS(bioreg_rast, file.path(".", "RData", "bioregions_aus.rds"))
 #------------------#
 #####---VI. GTAP####
 #------------------#
-
+#The input data are the outputs of our CGE model
 countries <- c("aus", "vnm")
 rcps <- c("1oC", "4oC")
 scens <- c("26", "85")
-timesteps <- c(1, 13, 23, 33, 43, 53)
+timesteps <- c(1, 13, 23, 33, 43, 53) #(#years from 2018)
 
 
-#6.a) GTAP trajectories for plots (2018 and 2070 sector output and landendowments)
+#6.a) Process data for plots (2018 and 2070 sector output and landendowments)
 all_bc <- data.frame(row.names = 1:58)
 countries <- c("aus", "vnm")
 for (l in c(1:2)){
@@ -385,7 +401,7 @@ for (j in 1:length(countries)){
       harv <- harvested[which(harvested$Area == "Viet Nam"),]
     }
     
-    #Sum the area (in ha) produced in available GTAP classes (2005 estamtes)
+    #Sum the area (in ha) produced in available GTAP classes
     total_bysector <- aggregate(harv$Value, by = list(harv$GTAP.sector), FUN = function(x) sum(na.omit(x)))
     
     #relative area harvested of agricultural commodities as share of total area harvested in one of the GTAP sectors.
