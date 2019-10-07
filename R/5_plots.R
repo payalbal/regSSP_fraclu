@@ -23,6 +23,7 @@ ca <- c("aus", "til")
 #1.b Get AUC values
 auc_list <- list()
 exclude_list <- list()
+j <- 2
 for(j in 1:2){
   res <- readRDS(file.path(out_path, paste0("results_", ca[j], ".rds")))
   auc_list[[j]] <- numeric()
@@ -34,9 +35,10 @@ for(j in 1:2){
 
 #1.c Get habitat change results, minus the ones where AUC were insufficient
 final_data <- list()
+i <- 2
 for(i in 1:2){
   res <- readRDS(file.path(out_path, paste0("results_", ca[i], ".rds")))
-  species <- sapply(res, FUN = function (x) {cbind(x[[3]])})
+  species <- sapply(res, FUN = function (x) {cbind(x[[4]])})
   res <- t(sapply(res, FUN = function (x) {cbind(x[[2]])}))
   res <- data.frame(species, res)
   res <- res[-exclude_list[[i]],]
@@ -71,7 +73,7 @@ layout(matrix(c(1, 2, 9, 3, 5,
                 9, 4, 4, 4, 8), 
               nrow = 4, byrow = T), 
        widths = c(0.1, 0.3,0.05, 0.3,0.5),
-       heights = c(0.4, 0.45, 0.45, 0.1))
+       heights = c(0.4, 0.45, 0.45, 0.15))
 par(mar = c(0.2,4,0.2,0.2))
 par(mgp = c(3, 0.5, 0))
 
@@ -113,28 +115,28 @@ for(j in 1:2){
     points(rep(x[i], length(pts)) + runif( length(pts), -jit, jit), pts, pch = 20, col = grey(0.7), cex = 1)
     
     #i Means
-    rect(x[i] - wth, means[i], x[i] + wth, means[i],
-         col= grey(0), border=par("fg"), lty= 1, lwd= 3, xpd=FALSE)
+    segments(x[i] - wth, means[i], x[i] + wth, means[i],
+             col= grey(0), border=par("fg"), lty= 1, lwd= 2, xpd=FALSE)
   }
   
   
-  title(xlab = countries[j], cex.lab = 1, line = -27)
-  
-  brackets(x1 = 0.5, y1 = lims[1], x2 = 3.5, y2 = lims[1], type = 4, ticks = c(-0, -1), h = 0.08)
-  brackets(x1 = 4.5, y1 = lims[1], x2 = 7.5, y2 = lims[1], type = 4, ticks = c(0, 1), h = 0.08)
-  text(x = 2, y = lims[1] - 0.1, "RCP 2.6", cex = tf)
-  text(x = 6, y = lims[1] - 0.1, "RCP 8.5", cex = tf)
+  title(xlab = countries[j], cex.lab = 1, line = -26)
+  of <- 0.1
+  brackets(x1 = 0.5, y1 = lims[1] - of, x2 = 3.5, y2 = lims[1]- of, type = 4, ticks = c(-0, -1), h = 0.08)
+  brackets(x1 = 4.5, y1 = lims[1] - of, x2 = 7.5, y2 = lims[1]- of, type = 4, ticks = c(0, 1), h = 0.08)
+  text(x = 2, y = lims[1] - of - 0.1, "RCP 2.6", cex = tf, xpd = NA)
+  text(x = 6, y = lims[1] - of - 0.1, "RCP 8.5", cex = tf, xpd = NA)
   
   
   trmt <- c(1, 2, 3)
   trmt <- c(trmt, trmt)
   posis <- c(1,2,3,5,6,7)
   for (i in 1:6){
-    text(x = posis[i], y = log(0.125) - 0.1, trmt[i], cex = tf)
+    text(x = posis[i], y = log(0.125) - 0.1 - of , trmt[i], cex = tf)
   }
 }
 
-par(mar = c(0,0,0,0))
+par(mar = c(0.5,0,0,0))
 
 plot.new()
 
@@ -147,8 +149,8 @@ legend("bottom", bty= "n",
 )
 
 #2.c Plot boxplots for AUC
-par(mar = c(2,8,2,7))
-boxplot(auc_list[[1]][-exclude_list[[1]]], auc_list[[2]][-exclude_list[[2]]],
+par(mar = c(1.5,8,2,6))
+f <- boxplot(auc_list[[1]][-exclude_list[[1]]], auc_list[[2]][-exclude_list[[2]]],
         boxlty = 0,
         staplecol = "black",
         col = "grey",
@@ -160,9 +162,9 @@ boxplot(auc_list[[1]][-exclude_list[[1]]], auc_list[[2]][-exclude_list[[2]]],
 
 axis(2, tck = -0.025, at = c(0.7, 0.8, 0.9, 1), labels = c(0.7, 0.8, 0.9, 1))
 title(xlab = paste0("n = ", length(auc_list[[1]]) - length(exclude_list[[1]])), adj = 0.1, line = 0)
-title(xlab = "Australia", adj = 0.05, line =- 5.5)
+title(xlab = "Australia", adj = 0.05, line =- 6)
 title(xlab = paste0("n = ", length(auc_list[[2]]) - length(exclude_list[[2]])), adj = 0.9, line = 0)
-title(xlab = "Vietnam", adj = 0.95, line = -5.5)
+title(xlab = "Vietnam", adj = 0.95, line = - 6)
 title(ylab = "AUC", line = 2)
 
 
@@ -188,6 +190,7 @@ for(j in 1:2){
 }
 
 #ii  Barplots
+j <- 1
 for(j in 1:2){
   means <- colMeans(contr_list[[j]], na.rm = T)
   ns <- apply(contr_list[[j]], 2, FUN = function (x) {round(length(which(!is.na(x)))/length(x) * 100)})
@@ -197,35 +200,37 @@ for(j in 1:2){
   names[which(names == "diri")] <- "dist rivers"
   names(means) <- names
   par(mar = c(0,7,0,3))
-  breaks <- barplot(sort(means), horiz = T, axes = F, las = 2, border = NA, xlim = c(0, 25))
-  text(sort(means), breaks, paste0(ns, "%"), adj = 1)
-  title(xlab = country[j], line = -5, adj = 0.9)
+  #breaks <- barplot(sort(means), horiz = T, axes = F, las = 2, border = NA, xlim = c(0, 25))
+  breaks <- barplot(sort(ns), horiz = T, axes = F, las = 2, border = NA, xlim = c(0, 100))
+  text(sort(ns), breaks, paste0(sort(ns), "%"), adj = 1)
+  title(xlab = countries[j], line = -2, adj = 1)
 }
 
 
 par(mar = c(0.1, 7, 0, 3))
 par(mgp = c(3, 0.2, 0))
-axis(1, xlim = c(0, 25), line = 0.2, tck = -0.025)
+axis(1, xlim = c(0, 100), line = 0.2, tck = -0.025)
 plot.new()
-title(xlab = "% contribution", line = -1)
+title(xlab = "Fraction of models [%]", line = -1.5)
 dev.off()
 
 #---------------------#
 #####---3. Figure 3####
 #---------------------#
-
+countries <- c("Australia", "Vietnam")
 #3.a GTAP trajectoires
 all <- readRDS(file = file.path(".", "RData", paste0("results_gtap_qo_qfe", ".rds")))
 all <- all[c(1:9, 13),]
-ncom <- which(rownames(all)%in%c("pdr", "wht", "gro", "v_f", "osd", "c_b", "pfb", "ocr", "ctl", "frs"))
+
+ncom <- which(rownames(all)%in%c("pdr", "wht", "gro", "v_f", "osd", "c_b", "pfb", "ocr", "ctl", "frs"))[1:8]
 
 #i Define final Layout
-ma <- matrix(c(11:50),
-             nrow = 10,
+ma <- matrix((length(ncom) + 1):(length(ncom) + 1 + 31), #11:50
+             nrow = 8, #10
              ncol = 4,
              byrow = T)
 
-ma <- cbind(1:10, ma)
+ma <- cbind(1:length(ncom), ma) #1:10
 ma <- cbind(ma, (max(ma)+1): (max(ma) + nrow(ma)))
 ma <- rbind(c((max(ma) + 1):(max(ma) + ncol(ma))) , ma)
 ma <- rbind(ma, c((max(ma) + 1):(max(ma) + ncol(ma))))
@@ -233,8 +238,8 @@ ma <- rbind(ma, c(rep(max(ma) + 1,3), rep(max(ma) + 2,3)))
 
 ma <- rbind(ma, max(ma) + 1)
 ma <- cbind(ma[,c(1:3)], max(ma) + 1, ma[,c(4:6)])
-ma[14, c(1, 7)] <- 76
-ma[14,  4] <- 75
+ma[nrow(ma), c(1, 7)] <- max(ma)
+ma[nrow(ma),  4] <- max(ma) - 1
 ma <- cbind(ma, max(ma))
 mw <- 0.3
 
@@ -245,22 +250,23 @@ cols <- c(scales::alpha("black", alpha = 0.05),
 
 
 #ii Open device, set layout, plot
-pdf(file.path(fig_path, "gtap.pdf"), height = 12 * inch, width = 8.9 * inch, pointsize = 12)
+
+pdf(file.path(fig_path, "gtap.pdf"), height = 8 * inch, width = 8.9 * inch, pointsize = 12)
 par(family = "Helvetica")
-comnames <- c("paddy rice", "wheat", "cereal grains", "vegetables, fruit, nuts", "oil seeds", "sugar cane, sugar beet", "plant-based fibres", "crops nec", "cattle, sheep, goats, horses", "forestry")
+comnames <- c("paddy rice", "wheat", "cereal grains", "vegetables, fruit, nuts", "oil seeds", "sugar cane, sugar beet", "plant-based fibres", "crops nec", "cattle, sheep, goats, horses", "forestry")[ncom]
 
 layout(ma,
        widths = c(mw,1,1,mw-0.2,1,1,mw + 0.1, mw - 0.1),
-       heights = c(mw + 0.1, rep(1, 10), mw + 0.2, mw + 0.2))
+       heights = c(mw + 0.1, rep(1, length(ncom)), mw + 0.2, mw + 0.2))
 
 par(mar = c(0.1,0.05,0.1,0.05))
 
-for(i in 1:10){
+for(i in 1:length(ncom)){
   plot(y = c(-20, 10), x = c(1,1), type = "n", axes = F, xaxt = "n", yaxt = "n", cex = 0.8)
   text(y = -10, x = 1, comnames[i], cex = 0.9, adj = 0, xpd = NA, font = 2)
 }
 
-for(i in 1:10){
+for(i in 1:length(ncom)){
   for(k in 0:1){
     plot(y = c(-20,10), x = c(0, 1), type = "n",axes = F, xaxt = "n", yaxt = "n")
     #rect(0, -20, 1, 10, col = cols[1], lty = 0)
@@ -279,9 +285,9 @@ for(i in 1:10){
 }
 
 par(mar = c(0.1,0.05,0.1,2), mgp = c(2,0.2, 1))
-for(i in 1:10){
+for(i in 1:length(ncom)){
   plot(y = c(-20, 10), x = c(1,1), type = "n", axes = F)
-  axis(4, ylim = c(-20, 10), at = c(-20,-10, 0, 10), tcl = -0.25, line = 0.2, col = cols[4], cex.axis = 1)
+  axis(4, ylim = c(-20, 10), at = c(-20,-10, 0, 10), tcl = -0.25, line = 0.2, col = cols[4], cex.axis = 0.7)
 }
 
 par(mar = c(0,0,0,0))
@@ -307,11 +313,11 @@ for(i in 1:6){
 par(mar = c(0,0,0,0))
 for(i in 1:2){
   plot.new()
-  title(xlab = country[i], line = - 1.1)
+  title(xlab = countries[i], line = - 1.1)
 }
 par(mar = c(0,0,0,0))
 plot.new()
-legend("center", legend = c("Output", "Land endowment"), col = c("black", "grey"), lty = c(1, 1), horiz = T, bty = "n", lwd = c(2,2))
+legend("center", legend = c("Sector output", "Land requirement"), col = c("black", "grey"), lty = c(1, 1), horiz = T, bty = "n", lwd = c(2,2))
 
 dev.off()
 
@@ -363,25 +369,25 @@ par(mar = c(0,0,0,1), oma = c(0,0,0,0))
 plot(c(0,2),c(0,1),type = 'n', axes = F,xlab = '', ylab = '')
 text(x=1.1, y = seq(0,1,l=5), labels = seq(0,1,l=5), cex = 0.8)
 rasterImage(legend_image, 0, 0, 0.5,1)
+
 dev.off()
-
-
 #3.c) Land use change per class table
 #i Global parameters
 rcps <- c("_26", "_85")
 countries <- c("vnm", "aus")
-mm <- matrix(NA, ncol = 6, nrow = 5)
-
+mm <- matrix(NA, ncol = 6, nrow = 6)
+lu_classes <- c("Urban", "Cropland", "Herbaceous", "Shrubs", "Open forest", "Closed forest")
 #ii Open device
 pdf(file.path(fig_path, "landuse_table.pdf"), height = 6 * inch, width = 13 * inch, pointsize = 12)
-par(mar = c(2, 8, 4, 2))
 
+par(mar = c(2, 6, 4, 2))
 #iii Get data
+
 for(j in 1:2){
-  m <- matrix(NA, ncol = 3, nrow = 5)
-  m[, 1] <- as.numeric(readRDS(file.path(".", "output", paste0("demandfinal_q2",rcps[j], "_", countries[j], ".rds")))[1,])
+  m <- matrix(NA, ncol = 3, nrow = 6)
+  m[, 1] <- as.numeric(readRDS(file.path(".", "output", paste0("final_dmdq2",rcps[j], "_", countries[j], ".rds")))[1,])
   for(i in 1:2){
-    m[, i + 1] <- as.numeric(readRDS(file.path(".", "output", paste0("demandfinal_q2",rcps[i], "_",  countries[j], ".rds")))[6,])
+    m[, i + 1] <- as.numeric(readRDS(file.path(".", "output", paste0("final_dmdq2",rcps[i], "_",  countries[j], ".rds")))[6,])
   }
   if(j ==1) mm[,1:3] <- m
   if(j == 2) mm[,4:6] <- m
@@ -393,9 +399,10 @@ mn <- cbind(round((mm[,4:6] - mm[,4]), 2), round((mm[,1:3] - mm[,1]), 2))[,-c(1,
 mm <- round(t(t(mn)/rs) * 100, 2)
 cols1 <- colorRampPalette(c("darkred", "white"))(50)
 cols2 <- colorRampPalette(c("white", "darkgreen"))(50)
-breaks <- seq(-0.8, 0.8, length.out = 101)
+breaks <- seq(-3, 3, length.out = 101)
+new_breaks <- rescale(breaks^3, to = c(-4, 4))
 colnames(mm) <- c(c("RCP 2.6", "RCP 8.5"), c("RCP 2.6", "RCP 8.5"))
-rownames(mm) <- c("Cropland", "Grass/shrubland", "Forest", "Urban", "Other")
+rownames(mm) <- lu_classes
 
 x <- 1:ncol(mm)
 y <- 1:nrow(mm)
@@ -403,7 +410,7 @@ centers <- expand.grid(y,x)
 
 image(x, y, t(mm),
       col = c(cols1, cols2),
-      breaks = breaks,
+      breaks = new_breaks,
       xaxt = 'n', 
       yaxt = 'n',
       xlab = '', 
@@ -415,7 +422,7 @@ text(centers[,2], centers[,1], c(mm), col= "black")
 
 mtext(paste(attributes(mm)$dimnames[[2]]), at=1:ncol(mm), padj = -1)
 mtext(c("Australia", "Vietnam") , at= c(1.5, 3.5), padj = -3)
-mtext(attributes(mm)$dimnames[[1]], at=1:nrow(mm), side = 2, las = 1, adj = 1.2)
+mtext(attributes(mm)$dimnames[[1]], at=1:nrow(mm), side = 2, las = 1, adj = 1.05)
 
 dev.off()
 
@@ -423,17 +430,37 @@ dev.off()
 #####---4. Figure 4####
 #---------------------#
 #4.a Get species declining under didfernet scens/treatments (for results section)
-i <- 2 # 1 for aus, 2 for vnm
+countries <- c("aus", "vnm")
+i <- 2
+mask <- readRDS(file.path(in_path, paste0("mask_", countries[i], ".rds")))
 
+dat <- final_data[[i]]
+#iii get species with declines more than 90% under dir and more than 5% under indir effects of RCP8.5 (median predictions)
 #i more than 5% decline under indirect imapcts (median predictions)
-apply(final_data[[2]][,-1], 2, FUN = function(x) {length(which(exp(x) < 0.95))})
+apply(dat[,-1], 2, FUN = function(x) {length(which(exp(x) < 0.95))})
 
 #ii more than 90% decline under direct impacts  (median predictions)
-apply(final_data[[2]][,-1], 2, FUN = function(x) {length(which(exp(x) < 0.1))})
+apply(dat[,-1], 2, FUN = function(x) {length(which(exp(x) < 0.05))})
 
-#iii get species with declines more than 90% under dir and more than 5% under indir effects of RCP8.5 (median predictions)
-as.character(final_data[[i]][,1])[which(exp(final_data[[i]]$ind_q2_85) < 0.95)]
-as.character(final_data[[i]][,1])[which(exp(final_data[[i]]$dir_q2_85) < 0.1)]
+dir_specs <- as.character(dat[,1])[which(exp(dat$dir_q2_85) < 0.05)]
+ind_specs <- as.character(dat[,1])[which(exp(dat$ind_q2_85) < 0.95)]
+
+dir_inds <- which(dat$species%in%dir_specs)
+ind_inds <- which(dat$species%in%ind_specs)
+
+res <- readRDS(file.path(out_path, paste0("results_", ca[i], ".rds")))
+species <- sapply(res, FUN = function (x) {cbind(x[[4]])})
+id <- which(species%in%ind_specs)[6]
+res[[id]][[4]]
+t <- mask
+t <- mask - 1
+plot(t)
+t[res[[id]][[5]]] <- 1
+plot(t)
+print(species[id])
+
+dir_specs <- as.character(dat[,1])[which(exp(dat$inddir_q2_85) <= 0.5)]
+172/nrow(dat)
 
 #4.b Make map of habitat declines across all species
 #i Prepare data for plotting
@@ -442,13 +469,14 @@ for(i in 1:2){
   country <- ca[i]
   if(country == "til") country <- "vnm"
   mask <- readRDS(file.path(in_path, paste0("mask_", country, ".rds")))
-  final_maps[[i]] <- stack(mask, mask, mask, mask)
-  names(final_maps[[i]]) <- c("inds_ind_gone", "inds_ind_new", "inds_dir_gone", "inds_dir_new")
+  
+  final_maps[[i]] <- stack(mask, mask)
+  names(final_maps[[i]]) <- c("indirect", "direct")
   res <- readRDS(file.path(out_path, paste0("results_", ca[i], ".rds")))
   for(j in 1:length(res)){
-    if(!res[[j]][[3]]%in%final_data[[i]][,1]) next
-    for(k in 4:7){
-      if(length(res[[j]][[k]]) != 0) final_maps[[i]][[k-3]][res[[j]][[k]]] <- final_maps[[i]][[k-3]][res[[j]][[k]]] + 1
+    if(!res[[j]][[4]]%in%final_data[[i]][,1]) next
+    for(k in 5:6){
+      if(length(res[[j]][[k]]) != 0) final_maps[[i]][[k-4]][res[[j]][[k]]] <- final_maps[[i]][[k-4]][res[[j]][[k]]] + 1
     }
     print(j)
   }
@@ -460,25 +488,25 @@ for(i in 1:2){
 cols <- colorRampPalette(c("royalblue2", "yellow2", "red2"))(101)
 tm <- c('ind', '', "dir")
 countries <- c("Australia", "Vietnam")
+dev.off()
 
 for(i in 1:2){
   f <- final_maps[[i]] * 100
-  
-  for(j in c(1,3)){
-  s <- hist(f[[j]])$breaks
-  g <- seq(s[1], tail(s,1), length.out = 20)
-  cols <- colorRampPalette(c("royalblue2", "yellow2", "red2"))(50)
-  png(file.path(fig_path, paste0("habitat_change_", tm[j], "_", ca[i],  ".png")) , bg = "transparent")
-  print(levelplot(f[[j]], col.regions = cols, margin = F, colorkey= NULL, par.settings = list(
-    axis.line = list(col = "transparent"),
-    strip.background = list(col = 'transparent'), 
-    strip.border = list(col = 'transparent')),
-    scales = list(draw = FALSE),
-    xlab = NULL,
-    ylab = NULL,
-    at = g
-  ))
-  dev.off()
+  for(j in c(1,2)){
+    s <- hist(f[[j]])$breaks
+    g <- seq(s[1], tail(s,1), length.out = 20)
+    cols <- colorRampPalette(c("royalblue2", "yellow2", "red2"))(50)
+    png(file.path(fig_path, paste0("habitat_change_", tm[j], "_", ca[i],  ".png")) , bg = "transparent")
+    print(levelplot(f[[j]], col.regions = cols, margin = F, colorkey= NULL, par.settings = list(
+      axis.line = list(col = "transparent"),
+      strip.background = list(col = 'transparent'), 
+      strip.border = list(col = 'transparent')),
+      scales = list(draw = FALSE),
+      xlab = NULL,
+      ylab = NULL,
+      at = g
+    ))
+    dev.off()
   }
 }
 
@@ -491,6 +519,36 @@ text(x=1.1, y = seq(0,1,l=5), labels = seq(0,1,l=5), cex = 0.8)
 rasterImage(legend_image, 0, 0, 0.5,1)
 dev.off()
 
+#Land-use Effect sizes
+country_abbr <- "vnm"
+lu_classes <- c("Urban", "Cropland", "Herbaceous vegetation", "Shrubs", "Open forest", "Closed forest", "Herbaceous wetlands, moss and lichen", "Bare soil and sparse vegetation")
+load(file.path(out_path, paste0("landuse_preds", country_abbr, ".RData")))
+rm(covariates,ef, obs, pa)
+
+gc()
+pdf(file.path(fig_path, paste0("lu_effects_", country_abbr, ".pdf")), height = 18.3 * inch, width = 18.3 * inch, pointsize = 12)
+par(mfrow = c(3, 2), mar = par("mar") - c(1, 0.5 , 2, 1))
+i <- 1
+for(i in 1:(length(lu_classes)-2)){
+  sum_mod <- summary(glm.models@models[[i]])$coefficients[-1,]
+  suit_preds <- or_names
+  cov_names <- paste0("ef_", sprintf("%02d", 1:14))
+  xs <- na.omit(match(rownames(sum_mod), cov_names))
+  ys <- as.numeric(sum_mod[,1])
+  lower <- ys - 1.96 * sum_mod[,2]
+  upper <- ys + 1.96 * sum_mod[,2]
+  plot(1:14, type = "n", ylim = c(floor(min(lower)), ceiling(max(upper))), xaxt='n', ann = FALSE)
+  abline(h = 0, col =alpha("black", alpha = 0.5), lwd = 2)
+  arrows(x0 = xs, lower, x1 = xs, upper, length = 0, angle = 90, 
+         code = 3, col = alpha("black", alpha = 0.5), lwd = 2)
+  points(xs, sum_mod[,1], pch = 16)
+  axis(1, c(0,xs), labels = FALSE)
+  text(x = c(0,xs), labels = c("", suit_preds[xs]), srt = 45, pos = 1, xpd = TRUE, par("usr")[3] - (par("usr")[4] - par("usr")[3])/10)
+  title(ylab="Effect size", line = 2.1)
+  title(main=lu_classes[i], line = 1, cex = 0.8)
+}
+dev.off()
+
 #--------------------------------#
 #####---5. Supplementary Plots####
 #--------------------------------#
@@ -499,6 +557,16 @@ qs <- c("q1", "q3")
 x <- c(1:3, 5:7)
 lims <- c(log(0.03), log(8))
 
+#2.a Some parameters
+#i GLobal plotting pars
+x <- c(1:3, 5:7)
+lims <- c(log(0.1), log(8))
+padj <- - 0.05
+wth <- 0.35
+jit <- 0.3
+tf <- 0.8
+countries <- c("Australia", "Vietnam")
+dev.off()
 #5.b Supplementary Figure 1
 pdf(file.path(fig_path, "sup_habitat_change.pdf"), height = 18.3 * inch, width = 18.3 * inch, pointsize = 12)
 

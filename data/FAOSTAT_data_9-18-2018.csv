@@ -1,0 +1,124 @@
+Domain Code,Domain,Area Code,Area,Element Code,Element,Item Code,Item,GTAP sector,Year Code,Year,Unit,Value,Flag,Flag Description
+QC,Crops,10,Australia,5312,Area harvested,221,"Almonds, with shell",v_f,2016,2016,ha,20550,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,711,"Anise, badian, fennel, coriander",ocr,2016,2016,ha,890,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,515,Apples,v_f,2016,2016,ha,19212,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,526,Apricots,v_f,2016,2016,ha,8755,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,367,Asparagus,v_f,2016,2016,ha,1530,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,572,Avocados,v_f,2016,2016,ha,14161,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,486,Bananas,v_f,2016,2016,ha,16612,,Official data
+QC,Crops,10,Australia,5312,Area harvested,44,Barley,gro,2016,2016,ha,4107648,,Official data
+QC,Crops,10,Australia,5312,Area harvested,176,"Beans, dry",ocr,2016,2016,ha,38066,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,414,"Beans, green",v_f,2016,2016,ha,6795,,Official data
+QC,Crops,10,Australia,5312,Area harvested,558,Berries nes,v_f,2016,2016,ha,1882,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,552,Blueberries,v_f,2016,2016,ha,913,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,181,"Broad beans, horse beans, dry",ocr,2016,2016,ha,350457,,Official data
+QC,Crops,10,Australia,5312,Area harvested,358,Cabbages and other brassicas,v_f,2016,2016,ha,2343,,Official data
+QC,Crops,10,Australia,5312,Area harvested,101,Canary seed,gro,2016,2016,ha,6991,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,426,Carrots and turnips,v_f,2016,2016,ha,5245,,Official data
+QC,Crops,10,Australia,5312,Area harvested,393,Cauliflowers and broccoli,v_f,2016,2016,ha,9661,,Official data
+QC,Crops,10,Australia,5312,Area harvested,531,Cherries,v_f,2016,2016,ha,2858,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,191,Chick peas,ocr,2016,2016,ha,677444,,Official data
+QC,Crops,10,Australia,5312,Area harvested,401,"Chillies and peppers, green",v_f,2016,2016,ha,1778,,Official data
+QC,Crops,10,Australia,5312,Area harvested,195,"Cow peas, dry",ocr,2016,2016,ha,,M,Data not available
+QC,Crops,10,Australia,5312,Area harvested,397,Cucumbers and gherkins,v_f,2016,2016,ha,600,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,550,Currants,v_f,2016,2016,ha,142,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,569,Figs,v_f,2016,2016,ha,93,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,512,"Fruit, citrus nes",v_f,2016,2016,ha,157,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,603,"Fruit, tropical fresh nes",v_f,2016,2016,ha,1169,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,507,Grapefruit (inc. pomelos),v_f,2016,2016,ha,847,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,560,Grapes,v_f,2016,2016,ha,136270,,Official data
+QC,Crops,10,Australia,5312,Area harvested,242,"Groundnuts, with shell",osd,2016,2016,ha,6932,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,677,Hops,ocr,2016,2016,ha,225,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,592,Kiwi fruit,v_f,2016,2016,ha,129,,Official data
+QC,Crops,10,Australia,5312,Area harvested,497,Lemons and limes,v_f,2016,2016,ha,2048,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,201,Lentils,ocr,2016,2016,ha,224944,,Official data
+QC,Crops,10,Australia,5312,Area harvested,372,Lettuce and chicory,v_f,2016,2016,ha,8679,,Official data
+QC,Crops,10,Australia,5312,Area harvested,333,Linseed,osd,2016,2016,ha,6000,*,Unofficial figure
+QC,Crops,10,Australia,5312,Area harvested,210,Lupins,ocr,2016,2016,ha,534084,,Official data
+QC,Crops,10,Australia,5312,Area harvested,56,Maize,gro,2016,2016,ha,53281,,Official data
+QC,Crops,10,Australia,5312,Area harvested,446,"Maize, green",v_f,2016,2016,ha,7956,,Official data
+QC,Crops,10,Australia,5312,Area harvested,571,"Mangoes, mangosteens, guavas",v_f,2016,2016,ha,9392,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,568,"Melons, other (inc.cantaloupes)",v_f,2016,2016,ha,6148,,Official data
+QC,Crops,10,Australia,5312,Area harvested,79,Millet,gro,2016,2016,ha,35425,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,449,Mushrooms and truffles,v_f,2016,2016,ha,144,,Official data
+QC,Crops,10,Australia,5312,Area harvested,292,Mustard seed,osd,2016,2016,ha,,M,Data not available
+QC,Crops,10,Australia,5312,Area harvested,234,"Nuts, nes",v_f,2016,2016,ha,17797,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,75,Oats,gro,2016,2016,ha,821498,,Official data
+QC,Crops,10,Australia,5312,Area harvested,260,Olives,osd,2016,2016,ha,32747,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,403,"Onions, dry",v_f,2016,2016,ha,4707,,Official data
+QC,Crops,10,Australia,5312,Area harvested,490,Oranges,v_f,2016,2016,ha,20572,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,600,Papayas,v_f,2016,2016,ha,305,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,534,Peaches and nectarines,v_f,2016,2016,ha,11327,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,521,Pears,v_f,2016,2016,ha,5734,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,187,"Peas, dry",ocr,2016,2016,ha,271752,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,417,"Peas, green",v_f,2016,2016,ha,3491,,Official data
+QC,Crops,10,Australia,5312,Area harvested,587,Persimmons,v_f,2016,2016,ha,86,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,574,Pineapples,v_f,2016,2016,ha,1609,,Official data
+QC,Crops,10,Australia,5312,Area harvested,223,Pistachios,v_f,2016,2016,ha,1353,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,536,Plums and sloes,v_f,2016,2016,ha,2644,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,116,Potatoes,v_f,2016,2016,ha,27968,,Official data
+QC,Crops,10,Australia,5312,Area harvested,211,"Pulses, nes",ocr,2016,2016,ha,5656,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,394,"Pumpkins, squash and gourds",v_f,2016,2016,ha,5090,,Official data
+QC,Crops,10,Australia,5312,Area harvested,523,Quinces,v_f,2016,2016,ha,,M,Data not available
+QC,Crops,10,Australia,5312,Area harvested,270,Rapeseed,osd,2016,2016,ha,2357000,*,Unofficial figure
+QC,Crops,10,Australia,5312,Area harvested,547,Raspberries,v_f,2016,2016,ha,263,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,27,"Rice, paddy",pdr,2016,2016,ha,26625,,Official data
+QC,Crops,10,Australia,5312,Area harvested,71,Rye,gro,2016,2016,ha,51791,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,280,Safflower seed,osd,2016,2016,ha,4394,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,328,Seed cotton,pfb,2016,2016,ha,280422,,Official data
+QC,Crops,10,Australia,5312,Area harvested,83,Sorghum,gro,2016,2016,ha,520527,,Official data
+QC,Crops,10,Australia,5312,Area harvested,236,Soybeans,osd,2016,2016,ha,29202,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,373,Spinach,v_f,2016,2016,ha,1883,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,544,Strawberries,v_f,2016,2016,ha,2424,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,156,Sugar cane,c_b,2016,2016,ha,447204,,Official data
+QC,Crops,10,Australia,5312,Area harvested,267,Sunflower seed,osd,2016,2016,ha,23000,*,Unofficial figure
+QC,Crops,10,Australia,5312,Area harvested,122,Sweet potatoes,v_f,2016,2016,ha,2070,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,495,"Tangerines, mandarins, clementines, satsumas",v_f,2016,2016,ha,5407,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,826,"Tobacco, unmanufactured",ocr,2016,2016,ha,670,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,388,Tomatoes,v_f,2016,2016,ha,5430,,Official data
+QC,Crops,10,Australia,5312,Area harvested,97,Triticale,gro,2016,2016,ha,78400,,Official data
+QC,Crops,10,Australia,5312,Area harvested,463,"Vegetables, fresh nes",v_f,2016,2016,ha,2372,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,205,Vetches,ocr,2016,2016,ha,29661,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,222,"Walnuts, with shell",v_f,2016,2016,ha,10380,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,567,Watermelons,v_f,2016,2016,ha,3907,Im,FAO data based on imputation methodology
+QC,Crops,10,Australia,5312,Area harvested,15,Wheat,wht,2016,2016,ha,11282202,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,711,"Anise, badian, fennel, coriander",ocr,2016,2016,ha,6998,Im,FAO data based on imputation methodology
+QC,Crops,237,Viet Nam,5312,Area harvested,486,Bananas,v_f,2016,2016,ha,120041,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,176,"Beans, dry",ocr,2016,2016,ha,145099,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,558,Berries nes,v_f,2016,2016,ha,13654,Im,FAO data based on imputation methodology
+QC,Crops,237,Viet Nam,5312,Area harvested,358,Cabbages and other brassicas,v_f,2016,2016,ha,34632,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,217,"Cashew nuts, with shell",v_f,2016,2016,ha,281047,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,125,Cassava,v_f,2016,2016,ha,579898,Im,FAO data based on imputation methodology
+QC,Crops,237,Viet Nam,5312,Area harvested,265,Castor oil seed,osd,2016,2016,ha,8315,Im,FAO data based on imputation methodology
+QC,Crops,237,Viet Nam,5312,Area harvested,393,Cauliflowers and broccoli,v_f,2016,2016,ha,6285,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,689,"Chillies and peppers, dry",v_f,2016,2016,ha,65686,Im,FAO data based on imputation methodology
+QC,Crops,237,Viet Nam,5312,Area harvested,693,Cinnamon (canella),ocr,2016,2016,ha,98106,Im,FAO data based on imputation methodology
+QC,Crops,237,Viet Nam,5312,Area harvested,249,Coconuts,osd,2016,2016,ha,146835,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,656,"Coffee, green",ocr,2016,2016,ha,597597,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,821,Fibre crops nes,pfb,2016,2016,ha,12984,Im,FAO data based on imputation methodology
+QC,Crops,237,Viet Nam,5312,Area harvested,619,"Fruit, fresh nes",v_f,2016,2016,ha,250365,Im,FAO data based on imputation methodology
+QC,Crops,237,Viet Nam,5312,Area harvested,507,Grapefruit (inc. pomelos),v_f,2016,2016,ha,42100,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,560,Grapes,v_f,2016,2016,ha,1267,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,242,"Groundnuts, with shell",osd,2016,2016,ha,184792,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,780,Jute,pfb,2016,2016,ha,208,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,56,Maize,gro,2016,2016,ha,1151830,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,571,"Mangoes, mangosteens, guavas",v_f,2016,2016,ha,74499,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,79,Millet,gro,2016,2016,ha,1428,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,234,"Nuts, nes",v_f,2016,2016,ha,3514,Im,FAO data based on imputation methodology
+QC,Crops,237,Viet Nam,5312,Area harvested,403,"Onions, dry",v_f,2016,2016,ha,96105,Im,FAO data based on imputation methodology
+QC,Crops,237,Viet Nam,5312,Area harvested,490,Oranges,v_f,2016,2016,ha,50881,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,687,Pepper (piper spp.),ocr,2016,2016,ha,81790,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,574,Pineapples,v_f,2016,2016,ha,34642,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,116,Potatoes,v_f,2016,2016,ha,21173,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,211,"Pulses, nes",ocr,2016,2016,ha,160355,Im,FAO data based on imputation methodology
+QC,Crops,237,Viet Nam,5312,Area harvested,27,"Rice, paddy",pdr,2016,2016,ha,7783113,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,836,"Rubber, natural",ocr,2016,2016,ha,621370,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,328,Seed cotton,pfb,2016,2016,ha,641,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,289,Sesame seed,osd,2016,2016,ha,50546,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,236,Soybeans,osd,2016,2016,ha,99578,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,156,Sugar cane,c_b,2016,2016,ha,256322,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,122,Sweet potatoes,v_f,2016,2016,ha,120635,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,667,Tea,ocr,2016,2016,ha,118824,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,826,"Tobacco, unmanufactured",ocr,2016,2016,ha,14651,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,463,"Vegetables, fresh nes",v_f,2016,2016,ha,907771,,Official data
+QC,Crops,237,Viet Nam,5312,Area harvested,567,Watermelons,v_f,2016,2016,ha,50031,,Official data

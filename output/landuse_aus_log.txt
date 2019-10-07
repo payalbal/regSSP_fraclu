@@ -1,0 +1,253 @@
+
+Preparing quantile  aus 26 1 
+Preparing quantile  aus 26 3 
+Preparing quantile  aus 26 2 
+t1t2t1t2t1t2t3t4t5t6t7t3t4t5t6t7t3t4t5t6t7t8t8t8t9t10
+Preparing model  aus 26 2 12 
+2019-09-23 03:01:31
+t9t10
+Preparing model  aus 26 3 12 
+2019-09-23 03:01:32
+t9t10
+Preparing model  aus 26 1 12 
+2019-09-23 03:01:33
+Starting CLUE aus 26 2 12 
+Starting CLUE aus 26 1 12 
+Starting CLUE aus 26 3 12 
+400.827 
+ 18.601 
+ 419.434 
+ 0 
+ 0 
+Preparing model  aus 26 2 22 
+2019-09-23 03:09:38
+408.792 
+ 17.746 
+ 426.539 
+ 0 
+ 0 
+Preparing model  aus 26 1 22 
+2019-09-23 03:09:45
+417.662 
+ 18.047 
+ 435.736 
+ 0 
+ 0 
+Preparing model  aus 26 3 22 
+2019-09-23 03:09:59
+Starting CLUE aus 26 2 22 
+Starting CLUE aus 26 1 22 
+Starting CLUE aus 26 3 22 
+428.683 
+ 18.544 
+ 447.239 
+ 0 
+ 0 
+Preparing model  aus 26 2 32 
+2019-09-23 03:18:09
+437.162 
+ 18.519 
+ 455.692 
+ 0 
+ 0 
+Preparing model  aus 26 1 32 
+2019-09-23 03:18:25
+438.399 
+ 18.491 
+ 456.89 
+ 0 
+ 0 
+Preparing model  aus 26 3 32 
+2019-09-23 03:18:41
+Starting CLUE aus 26 2 32 
+Starting CLUE aus 26 1 32 
+Starting CLUE aus 26 3 32 
+435.962 
+ 17.037 
+ 453.016 
+ 0 
+ 0 
+Preparing model  aus 26 2 42 
+2019-09-23 03:26:38
+440.945 
+ 17.941 
+ 458.889 
+ 0 
+ 0 
+Preparing model  aus 26 1 42 
+2019-09-23 03:27:05
+443.918 
+ 17.807 
+ 461.728 
+ 0 
+ 0 
+Preparing model  aus 26 3 42 
+2019-09-23 03:27:25
+Starting CLUE aus 26 2 42 
+Starting CLUE aus 26 1 42 
+Starting CLUE aus 26 3 42 
+435.649 
+ 16.939 
+ 452.598 
+ 0 
+ 0 
+Preparing model  aus 26 2 52 
+2019-09-23 03:35:06
+439.779 
+ 16.841 
+ 456.624 
+ 0 
+ 0 
+Preparing model  aus 26 1 52 
+2019-09-23 03:35:42
+Starting CLUE aus 26 2 52 
+456.962 
+ 17.579 
+ 474.545 
+ 0 
+ 0 
+Preparing model  aus 26 3 52 
+2019-09-23 03:36:18
+Starting CLUE aus 26 1 52 
+Starting CLUE aus 26 3 52 
+440.687 
+ 17.44 
+ 458.142 
+ 0 
+ 0 
+447.84 
+ 17.694 
+ 465.543 
+ 0 
+ 0 
+442.531 
+ 18.47 
+ 461.008 
+ 0 
+ 0 
+Preparing quantile  aus 85 1 
+Preparing quantile  aus 85 3 
+t1t1t2t2Preparing quantile  aus 85 2 
+t1t2t3t4t5t6t7t3t4t5t6t7t3t4t5t6t7t8t8t8t9t10
+Preparing model  aus 85 3 12 
+2019-09-23 03:46:37
+t9t10
+Preparing model  aus 85 1 12 
+2019-09-23 03:46:37
+t9t10
+Preparing model  aus 85 2 12 
+2019-09-23 03:46:39
+Starting CLUE aus 85 3 12 
+Starting CLUE aus 85 1 12 
+Starting CLUE aus 85 2 12 
+395.217 
+ 14.244 
+ 409.494 
+ 0 
+ 0 
+Preparing model  aus 85 3 22 
+2019-09-23 03:54:24
+397.826 
+ 14.281 
+ 412.11 
+ 0 
+ 0 
+Preparing model  aus 85 1 22 
+2019-09-23 03:54:27
+405.818 
+ 15.751 
+ 421.591 
+ 0 
+ 0 
+Preparing model  aus 85 2 22 
+2019-09-23 03:54:37
+Starting CLUE aus 85 3 22 
+Starting CLUE aus 85 1 22 
+Starting CLUE aus 85 2 22 
+424.454 
+ 14.442 
+ 438.938 
+ 0 
+ 0 
+Preparing model  aus 85 3 32 
+2019-09-23 04:02:35
+426.774 
+ 15.284 
+ 442.062 
+ 0 
+ 0 
+Preparing model  aus 85 1 32 
+2019-09-23 04:02:42
+433.55 
+ 15.866 
+ 449.441 
+ 0 
+ 0 
+Preparing model  aus 85 2 32 
+2019-09-23 04:02:58
+Starting CLUE aus 85 3 32 
+Starting CLUE aus 85 1 32 
+Starting CLUE aus 85 2 32 
+423.476 
+ 15.676 
+ 439.156 
+ 0 
+ 0 
+Preparing model  aus 85 3 42 
+2019-09-23 04:10:48
+427.132 
+ 15.883 
+ 443.018 
+ 0 
+ 0 
+Preparing model  aus 85 1 42 
+2019-09-23 04:11:00
+434.551 
+ 15.169 
+ 449.745 
+ 0 
+ 0 
+Preparing model  aus 85 2 42 
+2019-09-23 04:11:20
+Starting CLUE aus 85 3 42 
+Starting CLUE aus 85 1 42 
+Starting CLUE aus 85 2 42 
+420.837 
+ 15.395 
+ 436.235 
+ 0 
+ 0 
+Preparing model  aus 85 3 52 
+2019-09-23 04:18:55
+424.058 
+ 15.506 
+ 439.568 
+ 0 
+ 0 
+Preparing model  aus 85 1 52 
+2019-09-23 04:19:13
+433.74 
+ 14.953 
+ 448.722 
+ 0 
+ 0 
+Preparing model  aus 85 2 52 
+2019-09-23 04:19:40
+Starting CLUE aus 85 3 52 
+Starting CLUE aus 85 1 52 
+Starting CLUE aus 85 2 52 
+433.151 
+ 17.238 
+ 450.428 
+ 0 
+ 0 
+423.727 
+ 15.018 
+ 438.749 
+ 0 
+ 0 
+434.898 
+ 16.349 
+ 451.263999999999 
+ 0 
+ 0 

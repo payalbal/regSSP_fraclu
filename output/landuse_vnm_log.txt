@@ -1,0 +1,253 @@
+
+Preparing quantile  vnm 26 1 
+Preparing quantile  vnm 26 2 
+Preparing quantile  vnm 26 3 
+t1t2t1t2t1t2t3t4t5t6t3t3t4t5t6t4t5t6t7t7t7t8t8t8t9t10
+Preparing model  vnm 26 2 12 
+2019-09-23 05:15:42
+t9t10
+Preparing model  vnm 26 3 12 
+2019-09-23 05:15:42
+t9t10
+Preparing model  vnm 26 1 12 
+2019-09-23 05:15:42
+Starting CLUE vnm 26 3 12 
+Starting CLUE vnm 26 2 12 
+Starting CLUE vnm 26 1 12 
+101.285 
+ 0.268000000000001 
+ 101.552 
+ 0 
+ 0 
+Preparing model  vnm 26 2 22 
+2019-09-23 05:17:28
+102.183 
+ 0.355 
+ 102.531 
+ 0 
+ 0 
+Preparing model  vnm 26 1 22 
+2019-09-23 05:17:30
+102.968 
+ 0.319 
+ 103.281 
+ 0 
+ 0 
+Preparing model  vnm 26 3 22 
+2019-09-23 05:17:30
+Starting CLUE vnm 26 2 22 
+Starting CLUE vnm 26 1 22 
+Starting CLUE vnm 26 3 22 
+60.822 
+ 0.184 
+ 61.006 
+ 0 
+ 0 
+Preparing model  vnm 26 2 32 
+2019-09-23 05:18:33
+60.148 
+ 0.196 
+ 60.34 
+ 0 
+ 0 
+Preparing model  vnm 26 3 32 
+2019-09-23 05:18:34
+61.918 
+ 0.178999999999999 
+ 62.094 
+ 0 
+ 0 
+Preparing model  vnm 26 1 32 
+2019-09-23 05:18:35
+Starting CLUE vnm 26 2 32 
+Starting CLUE vnm 26 3 32 
+Starting CLUE vnm 26 1 32 
+56.866 
+ 0.159999999999999 
+ 57.027 
+ 0 
+ 0 
+Preparing model  vnm 26 2 42 
+2019-09-23 05:19:33
+57.48 
+ 0.123 
+ 57.602 
+ 0 
+ 0 
+59.282 
+ 0.159999999999998 
+ 59.44 
+ 0 
+ 0 
+Preparing model  vnm 26 1 42 
+2019-09-23 05:19:37
+Starting CLUE vnm 26 2 42 
+Preparing model  vnm 26 3 42 
+2019-09-23 05:19:37
+Starting CLUE vnm 26 1 42 
+Starting CLUE vnm 26 3 42 
+51.128 
+ 0.115 
+ 51.245 
+ 0 
+ 0 
+Preparing model  vnm 26 2 52 
+2019-09-23 05:20:28
+Starting CLUE vnm 26 2 52 
+51.568 
+ 0.151999999999999 
+ 51.718 
+ 0 
+ 0 
+Preparing model  vnm 26 1 52 
+2019-09-23 05:20:32
+53.946 
+ 0.143000000000001 
+ 54.087 
+ 0 
+ 0 
+Preparing model  vnm 26 3 52 
+2019-09-23 05:20:35
+Starting CLUE vnm 26 1 52 
+Starting CLUE vnm 26 3 52 
+49.373 
+ 0.144 
+ 49.517 
+ 0 
+ 0 
+47.594 
+ 0.147 
+ 47.739 
+ 0 
+ 0 
+48.739 
+ 0.138999999999999 
+ 48.876 
+ 0 
+ 0 
+Preparing quantile  vnm 85 3 
+Preparing quantile  vnm 85 2 
+t1Preparing quantile  vnm 85 1 
+t2t1t2t1t2t3t4t5t6t3t4t5t6t7t7t3t4t5t6t7t8t8t8t9t10
+Preparing model  vnm 85 2 12 
+2019-09-23 05:21:39
+t9t10
+Preparing model  vnm 85 3 12 
+2019-09-23 05:21:39
+t9t10
+Preparing model  vnm 85 1 12 
+2019-09-23 05:21:39
+Starting CLUE vnm 85 2 12 
+Starting CLUE vnm 85 3 12 
+Starting CLUE vnm 85 1 12 
+79.93 
+ 0.0660000000000007 
+ 79.9949999999999 
+ 0 
+ 0 
+Preparing model  vnm 85 2 22 
+2019-09-23 05:23:03
+Starting CLUE vnm 85 2 22 
+92.184 
+ 0.0719999999999992 
+ 92.254 
+ 0 
+ 0 
+Preparing model  vnm 85 3 22 
+2019-09-23 05:23:15
+Starting CLUE vnm 85 3 22 
+105.86 
+ 0.319999999999999 
+ 106.178 
+ 0 
+ 0 
+Preparing model  vnm 85 1 22 
+2019-09-23 05:23:30
+Starting CLUE vnm 85 1 22 
+60.638 
+ 0.143000000000001 
+ 60.783 
+ 0 
+ 0 
+Preparing model  vnm 85 2 32 
+2019-09-23 05:24:07
+Starting CLUE vnm 85 2 32 
+66.2839999999999 
+ 0.15 
+ 66.433 
+ 0 
+ 0 
+Preparing model  vnm 85 3 32 
+2019-09-23 05:24:25
+Starting CLUE vnm 85 3 32 
+61.386 
+ 0.126000000000001 
+ 61.51 
+ 0 
+ 0 
+Preparing model  vnm 85 1 32 
+2019-09-23 05:24:35
+Starting CLUE vnm 85 1 32 
+61.613 
+ 0.181999999999999 
+ 61.797 
+ 0 
+ 0 
+Preparing model  vnm 85 2 42 
+2019-09-23 05:25:13
+Starting CLUE vnm 85 2 42 
+62.684 
+ 0.111000000000001 
+ 62.7910000000001 
+ 0 
+ 0 
+Preparing model  vnm 85 1 42 
+2019-09-23 05:25:41
+73.894 
+ 0.146000000000001 
+ 74.04 
+ 0 
+ 0 
+Preparing model  vnm 85 3 42 
+2019-09-23 05:25:43
+Starting CLUE vnm 85 1 42 
+Starting CLUE vnm 85 3 42 
+58.3810000000001 
+ 0.0950000000000006 
+ 58.476 
+ 0 
+ 0 
+Preparing model  vnm 85 2 52 
+2019-09-23 05:26:15
+Starting CLUE vnm 85 2 52 
+60.052 
+ 0.0699999999999985 
+ 60.12 
+ 0 
+ 0 
+Preparing model  vnm 85 1 52 
+2019-09-23 05:26:45
+Starting CLUE vnm 85 1 52 
+64.6270000000001 
+ 0.0990000000000002 
+ 64.723 
+ 0 
+ 0 
+Preparing model  vnm 85 3 52 
+2019-09-23 05:26:52
+Starting CLUE vnm 85 3 52 
+52.457 
+ 0.0990000000000002 
+ 52.556 
+ 0 
+ 0 
+50.563 
+ 0.0630000000000024 
+ 50.6239999999999 
+ 0 
+ 0 
+60.5300000000001 
+ 0.0749999999999993 
+ 60.6020000000001 
+ 0 
+ 0 

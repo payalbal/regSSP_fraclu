@@ -1,88 +1,63 @@
-
+rm(list = ls())
 #required packages
 library("data.table")
-library('raster')
 library('rgdal')
 library("rgeos")
 library("matrixStats")
 require("rgdal")
 require("sp")
+library('raster')
+require(WorldClimTiles)
 
 source(file.path(".", "R", "1_functions.R"))
 country_abbr <- "aus" #this script needs to be run for aus, til and vnm
-mask <- readRDS(file.path(".", "RData", paste0("mask_", country_abbr, ".rds")))
 layer_path <- file.path(".", "RData")
 
-#---------------------------------#
-#---I. THINNING OCCURRENCE DATA####
-#---------------------------------#
+#To be done once initially
+mask <- getData("GADM", country = country_abbr, level = 0, path = layer_path)
+mask <- gSimplify(mask, tol = 0.00833)
 
-#GBIF data are available via DOIs:
-#Australia:  https://doi.org/10.15468/dl.khlzmu
-#Tile 29: https://doi.org/10.15468/dl.yapqxq
-#Viet Nam: https://doi.org/10.15468/dl.nt0ftl
-#1) GLOBAL PARAMETERS####
+if(country_abbr == "vnm"){
+mask_template <- raster(nrow = 1779, ncol = 879, 
+               crs = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0 ", 
+               ext = extent(c(102.1417, 109.4667, 8.566667, 23.39167)))
+}
+if(country_abbr == "aus"){
+mask_template <- raster(nrow = 4091, ncol = 4990, 
+                 crs = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0 ", 
+                 ext = extent(c(112.4667, 154.05, -44.04167, -9.95)))
+}
 
-# 1.a) Select country and load GBIF data
-occ <- as.data.frame(fread(paste0("~/OneDrive - The University of Melbourne/PhD - Large Files/PhD - Raw Data/GBIF/gbif_aves_", country_abbr, ".csv"), header = T, select = c("decimallongitude", "decimallatitude", "species"), na.strings=c("NA", "", " ")))
+mask_template[] <- 1
+mask <- mask(mask_template, mask)
+
 if(country_abbr == "til"){
-  occ_vnm <- fread(paste0("~/Dropbox/PhD - Large Files/PhD - Raw Data/GBIF/gbif_aves_vnm.csv"), header = T, select = c("decimallongitude", "decimallatitude", "species", na.strings=c("NA", "", " ")))
+  mask <- raster(extent(90, 120, 0, 30),  
+                 crs = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0 ", 
+                 res = 0.008333333)
+  mask[] <- 1
 }
 
-#1.b) Find exact spatial duplicates and remove
-species <- unique(occ$species)
-occ2 <- data.frame()
 
-#Remove dups within same species
-for (i in 1:length(species)) {
-  spec_inds <- which(occ$species == species[i])
-  values <- extract(mask, occ[spec_inds, c(1,2)], cellnumbers = T)
-  occ2 <- rbind(occ2, occ[spec_inds[which(!duplicated(values[,1]))],])
-  print(i)
-}
+plot(mask)
 
-#1.c) Remove entries with less than 2 dec places (because their precision is ca. below 1km2)
-lis <- strsplit(sub('0+$', '', as.character(occ2$decimallongitude)), ".", fixed = TRUE)
-out <- sapply(lis, function(x) nchar(x[2]))
-lis <- strsplit(sub('0+$', '', as.character(occ2$decimallatitude)), ".", fixed = TRUE)
-out2 <- sapply(lis, function(x) nchar(x[2]))
-unprecise <- which(out < 2 | out2 < 2)
-
-if(length(unprecise) > 0) { occ2 <- occ2[-unprecise,] }
-
-#1.d) check that all obs are in locations with data and remove obs where that isn't the case
-bgp <- SpatialPoints(occ2[,c(1,2)])
-preds_obs <- extract(mask, bgp)
-occ2 <- occ2[-which(is.na(preds_obs)),]
-
-#1.e) Filter for >= 20 occurrences
-occ3 <- occ2[occ2$species%in%names(which(table(occ2$species) >= 20)),]
-min(table(occ3$species)) >= 20
-species_left <- unique(occ3$species)
-spnums <- table(occ3$species)
-
-dat <- occ3
-names(dat) <- c("long","lat","species") #column names
-
-#1.f) Subset the ones only occuring in vnm
-if(country_abbr == "til"){
-  specs <- unique(dat$species)
-  specs <- specs[which(specs%in%unique(occ_vnm$species))]
-  dat <- dat[dat$species%in%specs,]
-}
-
-saveRDS(dat, file = paste0(layer_path, "/occ_", country_abbr, ".rds"))
+saveRDS(mask, file.path(layer_path, paste0("mask_", country_abbr, ".rds")))
 
 #-----------------------------#
-#---II. PREPARE STATIC DATA####
+#----I. PREPARE STATIC DATA####
 #-----------------------------#
-
+mask <- readRDS(file.path(layer_path, paste0("mask_", country_abbr, ".rds")))
+p
 #2.a) Topography
 #Data available through https://webmap.ornl.gov/ogc/wcsdown.jsp?dg_id=10008_1
-srtm <- raster("~/Dropbox/PhD - Large Files/PhD - Raw Data/Global/srtm_aus_vnm_tile29.tif")
+srtm <- raster("~/OneDrive - The University of Melbourne/PhD - Large Files/PhD - Raw Data/Global/srtm_aus_vnm_tile29.tif")
+
+srtm <- projectRaster(srtm, mask)
 srtm <- crop(srtm, mask)
+plot(mask, add = TRUE)
+srtm <- mask(srtm, mask)
+
 names(srtm) <- "srtm"
-extent(srtm) <- extent(mask)
 elevation <- mask(srtm, mask)
 slope <- terrain(srtm, opt = "slope")
 roughness <- terrain(srtm, opt = "roughness")
@@ -90,10 +65,10 @@ terrain <- stack(elevation, slope, roughness)
 
 #2.b) Soil
 #Data availbale through https://daac.ornl.gov/SOILS/guides/igbp-surfaces.html
-soil <- stack(list.files("~/Dropbox/PhD - Large Files/PhD - Raw Data/Global/soil_data/data", pattern = "*.dat", full.names = T))
+soil <- stack(list.files("~/OneDrive - The University of Melbourne/PhD - Large Files/PhD - Raw Data/Global/soil_data/data", pattern = "*.dat", full.names = T))
 crs(soil) <- crs(mask)
-soil <- crop(soil, mask)
 soil <- projectRaster(soil, mask)
+soil <- crop(soil, mask)
 soil <- mask(soil, mask)
 names(soil) <- c( "bulk", "awco", "carb",  "nitro")
 
@@ -126,47 +101,92 @@ names(soil) <- c( "bulk", "awco", "carb",  "nitro")
 # lakes <- raster(paste0(raw_rasters_rivers_lakes_cl/lakes_", country_abbr, ".tif"))
 # coast <- raster(paste0(raw_rasters_rivers_lakes_cl/coast_", country_abbr, ".tif"))
 # rivers <- raster(paste0(raw_rasters_rivers_lakes_cl/rivers_", country_abbr, ".tif"))
-# PA <- raster(paste0(raw_rasters_rivers_lakes_cl/PA_", country_abbr, ".tif"))
 # roads <- raster(paste0(raw_rasters_rivers_lakes_cl/PA_", country_abbr, ".tif"))
 # builtup <- raster(paste0(raw_rasters_rivers_lakes_cl/PA_", country_abbr, ".tif"))
 #names <- c("distrivers", "distlakes", "distcoastline", "PA", "distbuiltup", "distroads")
 
+distances <- stack(list.files("~/OneDrive - The University of Melbourne/PhD - Large Files/PhD - Raw Data/Global/preprocessed/", full.names = T, pattern = country_abbr)[-6])
 
-distances <- stack(list.files("~/Dropbox/PhD - Large Files/PhD - Raw Data/Global/preprocessed/", full.names = T, pattern = country_abbr)[-6])
+distances <- crop(distances, mask)
 distances <- mask(distances, mask)
-
 names(distances) <- c("dibu", "dico", "dila", "diri", "diro")
 rm(elevation, roughness, slope, srtm)
 
-pa <- raster(list.files("~/Dropbox/PhD - Large Files/PhD - Raw Data/Global/preprocessed/", full.names = T, pattern = country_abbr)[6])
+#PA
+plot(raster(paste0("/Users/kapitzas/OneDrive - The University of Melbourne/PhD - Large Files/PhD - Raw Data/Global/preprocessed/PA_", country_abbr, ".tif")))
+path <- "/Users/kapitzas/OneDrive - The University of Melbourne/PhD - Large Files/PhD - Raw Data/Global/Global Protected Areas"
+mask <- readRDS(paste0("/Users/kapitzas/OneDrive - The University of Melbourne/PhD/chapter1/birds_ccimpacts/RData/mask_", country_abbr, ".rds"))
+input <- file.path(path, "WDPA_Mar2018-shapefile-polygons.shp")
+output <- file.path(path, "WDPA_Mar2018-shapefile-polygons_cropped.shp")
+crop_shp(input, output, extent(mask))
+cropped <- readOGR(output)
+subs <- cropped[which(cropped@data$IUCN_CAT%in%c("II", "Ia", "Ib")),]
+output_subs <- "WDPA_Mar2018-shapefile-polygons_cropped_subs"
+writeOGR(subs, path, output_subs, driver = "ESRI Shapefile", overwrite_layer = TRUE)
+input <- paste0(file.path(path, output_subs), ".shp")
+output <- file.path(path, "pa_raster.tif")
+
+rasterize_shp(input, output, res = res(mask), ext = extent(mask))
+ras <- raster(output)
+ras <- mask(ras, mask)
+writeRaster(ras, paste0("/Users/kapitzas/OneDrive - The University of Melbourne/PhD - Large Files/PhD - Raw Data/Global/preprocessed/PA_", country_abbr, ".tif"), format = "GTiff", overwrite = TRUE)
+
+pa <- raster(list.files("~/OneDrive - The University of Melbourne/PhD - Large Files/PhD - Raw Data/Global/preprocessed/", full.names = T, pattern = country)[6])
 names(pa) <- "pa"
+pa <- crop(pa, mask)
 pa <- mask(pa, mask)
 pa[] <- (pa[] * -1) + 1
 
 #2.d) Population density
 #data available through http://sedac.ciesin.columbia.edu/data/set/grump-v1-population-density
-popdens <- raster("~/Dropbox/PhD - Large Files/PhD - Raw Data/Global/Pop_density/gluds00ag.bil")
+popdens <- raster("~/OneDrive - The University of Melbourne/PhD - Large Files/PhD - Raw Data/Global/Pop_density/gluds00ag.bil")
 popdens <- crop(popdens, mask, snap = "near")
-extent(popdens) <- extent(mask)
 popdens <- mask(popdens, mask)
 names(popdens) <- "popd"
 
 #2.e) Land use
 #Data available through https://landcover.usgs.gov/global_climatology.php
-world_lu <- raster("~/Dropbox/PhD - Large Files/PhD - Raw Data/Global/LCType.tif")
-lu <- crop(world_lu, mask)
-lu <- projectRaster(lu, mask, method = "ngb")
-lu <- mask(lu, mask)
 
-#Reclassify, see original calsses below.
-lu[lu[]%in%c(12,14)] <- 100
-lu[lu[]%in%c(6, 7,9,10,8)] <- 200
-lu[lu[]%in%c(1,2,3,4,5)] <- 300
-lu[lu[]%in%c(13)] <- 400
-lu[lu[]%in%c(11,15,16,0)] <- 500
+l <- list.files(file.path("~", "OneDrive - The University of Melbourne/PhD - Large Files/PhD - Raw Data", "Global", "copernicus tiles", country_abbr), full.names = TRUE, recursive = FALSE)
+lutiles_list <- list()
+for(i in 1:length(l)){
+  print(i)
+  r <- raster(l[[i]])
+  lutiles_list[[i]] <- projectRaster(r, mask, method = "ngb")
+  names(lutiles_list[[i]]) <- "lu"
+}
 
-lu <- lu/100 - 1
-table(lu[])
+tiles <- tile_merge(lutiles_list)
+lu <- mask(tiles, mask)
+
+table(lutiles_list[[2]][])
+lu[lu[] == 50] <- 1 #urban
+lu[lu[] == 40] <- 2 #crop
+lu[lu[] == 30] <- 3 #herbacious vegetation
+lu[lu[] == 20] <- 4 #shurbs
+lu[lu[]%in%c(121:126)] <- 5 #open forest
+lu[lu[]%in%c(111:116)] <- 6 #closed forest
+lu[lu[]%in%c(90, 100)] <- 7 #herbaceous wetland, moss, lichen
+lu[lu[]%in%c(60, 70)] <- 8 #bare, sparese, ice
+lu[lu[]%in%c(0, 80, 200)] <- NA #permanent water bodies (covered by distance to river and lake covariates)
+
+plot(lu)
+
+
+# world_lu <- raster("~/OneDrive - The University of Melbourne/PhD - Large Files/PhD - Raw Data/Global/LCType.tif")
+# lu <- crop(world_lu, mask)
+# lu <- projectRaster(lu, mask, method = "ngb")
+# lu <- mask(lu, mask)
+# 
+# #Reclassify, see original calsses below.
+# lu[lu[]%in%c(12,14)] <- 100
+# lu[lu[]%in%c(6, 7,9,10,8)] <- 200
+# lu[lu[]%in%c(1,2,3,4,5)] <- 300
+# lu[lu[]%in%c(13)] <- 400
+# lu[lu[]%in%c(11,15,16,0)] <- 500
+# 
+# lu <- lu/100 - 1
+# table(lu[])
 names(lu) <- "landuse"
 # 0	Water
 # 1	Evergreen Needle leaf Forest
@@ -185,11 +205,10 @@ names(lu) <- "landuse"
 # 14	Cropland/Natural Vegetation Mosaic
 # 15	Snow and Ice
 # 16	Barren or Sparsely Vegetated
-
+plot(lu)
 #---------------------------#
-#####---III. BIOCLIM DATA####
+#####----II. BIOCLIM DATA####
 #---------------------------#
-
 #3. a) Download tiles, mosaic, crop and write
 if(country_abbr == "aus"){
   tiles <- c("39", "310", "311", "49", "410", "411")
@@ -203,23 +222,43 @@ wc <- get_wctiles(tile = tiles, var = "bio", path = temp_folder)
 wc2 <- merge_wctiles(wc)
 names(wc2) <- paste0("bio",c(1:19))
 wc2 <- crop(wc2, mask)
+extent(wc2) <- extent(mask)
 wc2 <- mask(wc2, mask)
 bioclim <- wc2
 unlink(temp_folder, recursive = T)
-covariates <- stack(terrain, soil, distances, pa, popdens, bioclim,lu)
-saveRDS(covariates, file = paste0(layer_path, "covariates_", country_abbr, ".rds"))
 
+covariates <- stack(terrain, soil, distances, pa, popdens, bioclim, lu)
+
+#synch NA of present day covariates
+for(i in 1:nlayers(covariates)){
+  mask <- mask(mask, covariates[[i]])
+  print(i)
+}
+
+
+for(i in 1:nlayers(covariates)){
+  covariates[[i]] <- mask(covariates[[i]], mask)
+  print(i)
+}
+
+summary(as.data.frame(covariates))
+
+saveRDS(readAll(covariates), file = paste0(layer_path, "/covariates_", country_abbr, ".rds"))
+saveRDS(mask, file = paste0(layer_path, "/mask_", country_abbr, ".rds"))
 
 #3.b) Downlaoad GCM model predictions
 temp_folder <- file.path(".", "temp")
 dir.create(temp_folder)
 regions <- c("aus", "vnm")
+i <- 1
 for(i in 1:length(regions)){
-  assign(paste0("mask_", regions[i]), readRDS(file.path("RData", paste0("mask_", regions[i], ".rds"))))
+  assign(paste0("mask_", regions[i]), readRDS(file.path(".", "RData", paste0("mask_", regions[i], ".rds"))))
 }
 
 res <- 0.5
 scens <- c("26", "85")
+t <- readRDS("/Users/kapitzas/OneDrive - The University of Melbourne/PhD/chapter1/birds_ccimpacts/RData/bioq2_85_aus.rds")
+plot(t)
 
 models <- c("GF", "MP", "BC", "CC", "CN", "GS", "HD", "HE", "IP", "MI", "MR", "MC", "MG", "NO")
 download_path <- temp_folder
@@ -279,7 +318,7 @@ for(k in 1:2){
 
 
 #------------------------------------------#
-#####---IV. SYNCING NA ACROSS ALL LAYERS####
+#####--III. SYNCING NA ACROSS ALL LAYERS####
 #------------------------------------------#
 nas <- list()
 files <- list.files(layer_path, full.names = TRUE, pattern = country_abbr)
@@ -296,13 +335,13 @@ for(i in 1:nlayers(stack)){
 gc()
 
 #------------------------------------------------------#
-#####---V. MAKING BIOREGIONS RASTER (AUSTRALIA ONLY)####
+#####--IV. MAKING BIOREGIONS RASTER (AUSTRALIA ONLY)####
 #------------------------------------------------------#
 #Data available through http://www.environment.gov.au/fed/catalog/search/resource/downloadData.page?uuid=%7B4A2321F0-DD57-454E-BE34-6FD4BDE64703%7D
 bioreg <- readOGR(file.path("~", "Dropbox", "PhD - Large Files", "PhD - Raw Data", "Australia", "IBRA7_regions", "ibra7_regions.shp"))
 mask <- readRDS(file = file.path(".", "RData", "mask_aus.rds"))
 bioreg_rast <- mask
-bioreg_rast[] <- N
+bioreg_rast[] <- NA
 
 l <- length(bioreg@polygons)
 for(i in 1:l){
@@ -318,7 +357,7 @@ saveRDS(bioreg_rast, file.path(".", "RData", "bioregions_aus.rds"))
 
 
 #------------------#
-#####---VI. GTAP####
+#####----V. GTAP####
 #------------------#
 #The input data are the outputs of our CGE model
 countries <- c("aus", "vnm")
@@ -341,7 +380,7 @@ for (l in c(1:2)){
   scens <- c("26", "85")
   n <- data.frame(row.names = 1:58)
   for (i in 1:length(rcps)){
-    qfe <- read.table(file.path("~", "Dropbox", "PhD - Large Files", "PhD - Raw Data", "demand calcs", "prod and output", paste0("qfe_", cn, "_", rcps[i], "_all.csv")), header = F, sep = ",")
+    qfe <- read.table(file.path("~", "OneDrive - The University of Melbourne", "PhD - Large Files", "PhD - Raw Data", "demand calcs", "prod and output", paste0("qfe_", cn, "_", rcps[i], "_all.csv")), header = F, sep = ",")
     qfe_df <- as.table(t(qfe[which(qfe$V1 == "land"),][-1]))
     coms <- t(t(qfe[2,][1,]))
     colnames(qfe_df) <- qfe$V1[seq(1,98, 8)]
@@ -357,7 +396,7 @@ for (l in c(1:2)){
   
   qfe_all <- qfe_all[-which(rownames(qfe_all) == "cgds"),]
   for (i in 1:length(rcps)){
-    dat <- read.table(file.path("~", "Dropbox", "PhD - Large Files", "PhD - Raw Data", "demand calcs", "prod and output", paste0("qo_",cn ,"_",rcps[i], ".csv")), sep = ",")
+    dat <- read.table(file.path("~", "OneDrive - The University of Melbourne", "PhD - Large Files", "PhD - Raw Data", "demand calcs", "prod and output", paste0("qo_",cn ,"_",rcps[i], ".csv")), sep = ",")
     coms <- trimws(as.character(dat[,2]))
     dat <- dat[c(2, na.omit(match(rownames(qfe_all), coms))), -c(1,2,3,4)]
     colnames(dat) <- dat[1,]
@@ -383,8 +422,9 @@ all <- as.data.frame(all_bc, row.names = rownames(dat))
 saveRDS(all, file = file.path(".", "RData", paste0("results_gtap_qo_qfe", ".rds")))
 
 #6.b) Landendowment trajectories (for land use demand trajectories)
-harvested <- read.csv("~/Dropbox/PhD - Large Files/PhD - Raw Data/demand calcs/FAOSTAT_data_9-18-2018.csv", header = T)
-
+harvested <- read.csv("~/OneDrive - The University of Melbourne/PhD - Large Files/PhD - Raw Data/demand calcs/FAOSTAT_data_9-18-2018.csv", header = T)
+j <- 2
+i <- 2
 for (j in 1:length(countries)){
   country <- countries[j]
   landuse <- readRDS(file.path(".", "RData", paste0("covariates_", country, ".rds")))
@@ -414,7 +454,7 @@ for (j in 1:length(countries)){
     }else if (country == "vnm"){
       cn <-"vn"
     }
-    c <- read.table(file.path("~", "Dropbox", "PhD - Large Files", "PhD - Raw Data", "demand calcs", "prod and output", paste0("qfe_", cn, "_", rcps[i], "_all.csv")), header = F, sep = ",")
+    c <- read.table(file.path("~", "OneDrive - The University of Melbourne", "PhD - Large Files", "PhD - Raw Data", "demand calcs", "prod and output", paste0("qfe_", cn, "_", rcps[i], "_all.csv")), header = F, sep = ",")
     c_df <- as.table(t(c[which(c$V1 == "land"),][-1]))
     coms <- c[2,]
     coms <- t(t(coms[1,]))
@@ -435,3 +475,101 @@ for (j in 1:length(countries)){
     saveRDS(m_agr, file = file.path(".", "RData", paste0("gtap_landendowments_", country,"_", scens[i], ".rds")))
   }
 }
+
+#---------------------------------#
+#--VI. THINNING OCCURRENCE DATA####
+#---------------------------------#
+
+#GBIF data are available via DOIs:
+#Australia:  https://doi.org/10.15468/dl.khlzmu
+#Tile 29: https://doi.org/10.15468/dl.yapqxq
+#Viet Nam: https://doi.org/10.15468/dl.nt0ftl
+#1) GLOBAL PARAMETERS####
+country_abbr <- "aus" #til or aus
+# 1.a) Select country and load GBIF data
+occ <- as.data.frame(fread(paste0("~/OneDrive - The University of Melbourne/PhD - Large Files/PhD - Raw Data/GBIF/gbif_aves_", country_abbr, ".csv"), header = T, select = c("decimallongitude", "decimallatitude", "species"), na.strings=c("NA", "", " ")))
+if(country_abbr == "til"){
+  occ_vnm <- fread(paste0("~/OneDrive - The University of Melbourne/PhD - Large Files/PhD - Raw Data/GBIF/gbif_aves_vnm.csv"), header = T, select = c("decimallongitude", "decimallatitude", "species", na.strings=c("NA", "", " ")))
+}
+
+mask <- readRDS(file.path(layer_path, paste0("mask_", country_abbr, ".rds")))
+#1.b) Find exact spatial duplicates and remove
+species <- unique(occ$species)
+occ2 <- data.frame()
+
+#Remove dups within same species
+for (i in 1:length(species)) {
+  spec_inds <- which(occ$species == species[i])
+  values <- extract(mask, occ[spec_inds, c(1,2)], cellnumbers = T)
+  occ2 <- rbind(occ2, occ[spec_inds[which(!duplicated(values[,1]))],])
+  print(i)
+}
+
+#1.c) Remove entries with less than 2 dec places (because their precision is ca. below 1km2)
+lis <- strsplit(sub('0+$', '', as.character(occ2$decimallongitude)), ".", fixed = TRUE)
+out <- sapply(lis, function(x) nchar(x[2]))
+lis <- strsplit(sub('0+$', '', as.character(occ2$decimallatitude)), ".", fixed = TRUE)
+out2 <- sapply(lis, function(x) nchar(x[2]))
+unprecise <- which(out < 2 | out2 < 2)
+
+if(length(unprecise) > 0) { occ2 <- occ2[-unprecise,] }
+
+#1.d) check that all obs are in locations with data and remove obs where that isn't the case
+bgp <- SpatialPoints(occ2[,c(1,2)])
+preds_obs <- extract(mask, bgp)
+occ2 <- occ2[-which(is.na(preds_obs)),]
+
+#1.e) Filter for >= 20 occurrences
+occ3 <- occ2[occ2$species%in%names(which(table(occ2$species) >= 20)),]
+min(table(occ3$species)) >= 20
+species_left <- unique(occ3$species)
+spnums <- table(occ3$species)
+
+dat <- occ3
+names(dat) <- c("long","lat","species") #column names
+
+#1.f) Subset the ones only occuring in vnm
+if(country_abbr == "til"){
+  specs <- unique(dat$species)
+  specs <- specs[which(specs%in%unique(occ_vnm$species))]
+  dat <- dat[dat$species%in%specs,]
+}
+
+saveRDS(dat, file = paste0(layer_path, "/occ_", country_abbr, ".rds"))
+
+
+#synch NA of present day covariates
+source(file.path(".", "R", "1_functions.R"))
+country_abbr <- "aus" #this script needs to be run for aus and vnm
+layer_path <- file.path(".", "RData")
+
+mask <- readRDS(file.path(layer_path, paste0("mask_", country_abbr, ".rds")))
+covariates <- readRDS(file.path(layer_path, paste0("covariates_", country_abbr, ".rds")))
+mask <- covariates[[1]]
+
+files_count  <- list.files(file.path(layer_path), pattern = country_abbr, full.names = TRUE)
+bio <- files_count[grepl("bioq", files_count)]
+covs <- files_count[grepl("covariates", files_count)]
+files <- c(bio, covs)
+for(j in 1:length(files)){
+  r <- readRDS(files[[j]])
+  for(i in 1:nlayers(r)){
+    mask <- mask(mask, r[[i]])
+    print(i)
+  }
+  print(j)
+}
+
+for(j in 1:length(files)){
+  r <- readRDS(files[[j]])
+  for(i in 1:nlayers(r)){
+    r[[i]] <- mask(r[[i]], mask)
+    print(i)
+  }
+  saveRDS(readAll(r), file = files[[j]])
+  print(j)
+}
+length(which(is.na(mask[])))
+length(which(is.na(r[[1]][])))
+which(is.na(mask[]) != is.na(r[[1]][]))
+

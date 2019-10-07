@@ -1,3 +1,4 @@
+rm(list = ls())
 #required packages
 require("raster")
 library("data.table")
@@ -16,6 +17,7 @@ source(file.path(".","R", "1_functions.R"))
 #1.a Set some global parameters
 country_abbr <- "aus" #aus or til (til is tile29 of the worldclim data, see Methods)
 layer_path <- file.path(".", "RData")
+output_path <- file.path(".", "output")
 bias_preds <- c("dibu", "diro", "pa", "popd", "roughness")
 not_used <- c("srtm", "popd", "dico", "carb", "nitro", "awco", "bulk", "soilnitro", "landuse") #these are not used in SDM
 
@@ -45,7 +47,7 @@ for(i in 1:2){
   mod <- dismo::maxent(x= files, p= obs,nbg = 10000, factors = "pa", args= c("randomtestpoints=25","-J", "-P", "-p", "-h", "threshold=FALSE"))
   print(paste0("Predicting", country_abbr))
   bias <- dismo::predict(mod, files)
-  saveRDS(bias, file = file.path(".", "output", paste0("bias_", country_abbr, ".rds")))
+  saveRDS(readAll(bias), file = file.path(output_path, paste0("bias_", country_abbr, ".rds")))
 }
 
 #1.b) Correllation anlaysis
@@ -57,7 +59,7 @@ cov_df <- na.omit(cov_df)
 subs <- sample(1:nrow(cov_df), size = 10000)
 
 preds <- rownames(reduce_predset(cor(cov_df[subs,])))
-saveRDS(preds, file = file.path(".", "output", paste0("preds_", country_abbr, ".rds")))
+saveRDS(preds, file = file.path(output_path, paste0("preds_", country_abbr, ".rds")))
 
 #1.c) Australia-specific: determine adjacent bioregions (for background sampling)
 if(country_abbr == "aus"){
@@ -70,7 +72,7 @@ if(country_abbr == "aus"){
     adjs_list[[i]] <- unique(bio_regs[adjs], na.rm = T)
     print(i)
   }
-  saveRDS(adjs_list, file = file.path(".", "output", "adjs_list.rds"))
+  saveRDS(adjs_list, file = file.path(output_path, "adjs_list.rds"))
 }
 
 #1.d) Sampling background points using bias layer
