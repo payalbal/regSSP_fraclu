@@ -1,3 +1,10 @@
+# Folders
+RData/
+raw_data/
+output/
+data/
+figures/
+
 # Compiled source #
 ###################
 *.com
