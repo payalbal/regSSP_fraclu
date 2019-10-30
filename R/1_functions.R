@@ -1,5 +1,21 @@
+## FUNCTIONS
 
-#1. Function to download worldclim tiles
+## Download bioclim data from url
+download_from_url <- function (urls, zipdst, rasterdst) {
+  
+  for (url in urls){
+    response = tryCatch({
+      download.file(url, destfile = zipdst)
+    }, 
+    error = function(e){e}) # shouldn't get called
+    
+    print(response) # should be 0
+    unzip(zipdst, exdir = rasterdst)
+    file.remove(zipdst)
+  }
+}
+
+## Download current bioclim data by specified tiles - by Simon Kapitza
 get_wctiles <- function(tiles, var, path, ...){
   
   if(missing(path)){
@@ -23,7 +39,7 @@ get_wctiles <- function(tiles, var, path, ...){
   biotiles
 }
 
-#2. Function to merge the downloaded tiles inqto single raster layers
+## Merge downloaded bioclim tiles into single raster layer - by Simon Kapitza
 merge_wctiles <- function(biotiles){
   
   if(!is.list(biotiles)) stop("Please provide list with stacks for each tile")
@@ -53,7 +69,7 @@ merge_wctiles <- function(biotiles){
   out
 }
 
-#3. Reduce predictor set, always dropping predictor with highest corrleation with anyother predictor
+## Reduce predictor set by dropping predictors with highest corrleation with another predictor - by Simon Kapitza
 reduce_predset <- function(cors = matrix(), thresh = 0.7) {
   while (min(abs(cors[abs(cors) >= thresh])) != 1){
     values <- cors[which(abs(cors) > thresh)]
@@ -70,7 +86,7 @@ reduce_predset <- function(cors = matrix(), thresh = 0.7) {
   return(cors)
 }
 
-#4. Write raster layers from objects to disk, so maxent can pull them from there rather than having them all loaded into memory
+## Write raster layers from objects to disk, so maxent can pull them from there rather than having them all loaded into memory - by Simon Kapitza
 writeToDisk <- function(covariates, folder){
   dir.create(folder, recursive = T)
   writeRaster(covariates, filename = file.path(folder, paste0(names(covariates), ".tif")), bylayer = T, driver = "GTiff", overwrite = T)
