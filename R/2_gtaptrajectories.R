@@ -14,7 +14,7 @@ for (region in c("vnm", "aus")){
   landuse <- landuse[[which(names(landuse) == "landuse")]]
   lu_yr0 <- table(landuse[])[-c(7,8)] # lu for base year
   
-  for (i in 1:length(rcps)){
+  for (j in 1:length(rcps)){
     yrs <- length(year_range)
     lu_byYear <- matrix(NA, nrow = yrs, ncol = length(lu_yr0)) #empty matrix to store lu change trajaectories
     colnames(lu_byYear) <- lu_names
@@ -33,27 +33,29 @@ for (region in c("vnm", "aus")){
     n0 <- reg_dat[which(reg_dat$Year == min(reg_dat$Year)),]$Value
     t <- nrow(reg_dat)
     
-    ## Estimate rate of change using discrete growth model
+    ## Estimate rate of proportional change using discrete growth model
     ## nt = r^t * n0
     ## therefore, r = (nt/n0)^1/t
-    urb_propChange <- (nT/n0)^(1/t)
+    urb_ratePropChange <- (nT/n0)^(1/t)
+      ## or exp((log(nT) - log(n0)) * (1 / t))
     
-    
-    ## Estimate proportional rate of change
-    urb_propChange <- ((nT-n0)/nT)/t
+    ## OR Estimate asoulte rate of change scaled by change in year T
+    # an_urb_change <- ((nT-n0)/nT)*(1/t)
     
     ## Estimate area for all years, using discrete growth model
-    ## nt+1 = nt + nt*r^t
-    lu_byYear[,1] <- round(lu_yr0[1] * (1 + c(1:(yrs)) * c(0, rep(an_urb_change, yrs-1))))
-    
-    lu_byYear[,1] <- (an_urb_change *  c(1:yrs)) * lu_yr0[1]
+    for(i in 2:yrs){
+      lu_byYear[i,1] <- lu_byYear[i-1,1] * urb_ratePropChange
+    }
+    lu_byYear[,1] <- round(lu_byYear[,1])
+    ## OR if using an_urb_change:
+    # lu_byYear[,1] <- round(lu_yr0[1] * (1 + c(1:(yrs)) * c(0, rep(an_urb_change, yrs-1))))
     
     ## Crop
     #Load proportions harvested in 2016
     total_bysector <- readRDS(file.path(".", "RData", paste0("harvested2016_", region, ".rds")))
     
     #Load projected sector landendowments
-    m_agr <- readRDS(file = file.path(".","RData", paste0("gtap_landendowments_", region, "_", rcps[i], ".rds")))
+    m_agr <- readRDS(file = file.path(".","RData", paste0("gtap_landendowments_", region, "_", rcps[j], ".rds")))
     
     #calculate mean sector output, weighted by fao estimates of harvests
     lu_byYear[,2] <- round(lu_yr0[2] * (1 + colMeans(total_bysector[,2] * m_agr[-which(rownames(m_agr)%in%c("frs", "ctl")),]/100 * length(total_bysector[,2]))))
@@ -65,7 +67,7 @@ for (region in c("vnm", "aus")){
     colnames(demand) <- NULL
     print(rowSums(demand))
     
-    saveRDS(demand, file.path(".", "lu_output", paste0("landdemand_", region, "_", rcps[i], ".rds")))
+    saveRDS(demand, file.path(".", "lu_output", paste0("landdemand_", region, "_", rcps[j], ".rds")))
   }
 }
 
