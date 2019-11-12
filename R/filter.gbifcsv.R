@@ -45,31 +45,31 @@
 
 
 filter.gbifcsv = function (gbif.downloaded.data,
-                             gbif.nub.taxonomy,
-                             subset.gbifnubtaxonomy.byclass,
-                             output_folder = NULL,
-                             output_name = "filtereted_gbif",
-                             domain.mask = NULL,
-                             start.year = 1950,
-                             end.year = 2018,
-                             spatial.uncertainty.m = 1000,
-                             filter_fields = c("gbifid", "occurrenceid", "species", "scientificname", "countrycode",
-                                               "decimallatitude", "decimallongitude", "coordinateuncertaintyinmeters",
-                                               "coordinateprecision", "elevation", "elevationaccuracy", "depth",
-                                               "depthaccuracy", "eventdate", "day", "month", "year", "taxonkey",
-                                               "specieskey", "basisofrecord", "issue"),
-                             filter_basisofrecord = c("HUMAN_OBSERVATION", "PRESERVED_SPECIMEN", "OBSERVATION", 
-                                                      "MATERIAL_SAMPLE", "MACHINE_OBSERVATION"),
-                             issue_geospatial = c("ZERO_COORDINATE", "COORDINATE_INVALID", "COORDINATE_OUT_OF_RANGE", 
-                                                  "COUNTRY_COORDINATE_MISMATCH", "COORDINATE_REPROJECTION_FAILED", 
-                                                  "COORDINATE_REPROJECTION_SUSPICIOUS", "GEODETIC_DATUM_INVALID"),
-                             issue_taxonomic = c("TAXON_MATCH_FUZZY", "TAXON_MATCH_HIGHERRANK", "TAXON_MATCH_NONE"),
-                             issue_basisofrecord = c("BASIS_OF_RECORD_INVALID"),
-                             issue_date = NULL,
-                             select_fields = NULL,
-                             verbose = TRUE)
+                           gbif.nub.taxonomy,
+                           subset.gbifnubtaxonomy.byclass,
+                           output_folder = NULL,
+                           output_name = "filtereted_gbif",
+                           domain.mask = NULL,
+                           start.year = 1950,
+                           end.year = 2018,
+                           spatial.uncertainty.m = 1000,
+                           filter_fields = c("gbifid", "occurrenceid", "species", "scientificname", "countrycode",
+                                             "decimallatitude", "decimallongitude", "coordinateuncertaintyinmeters",
+                                             "coordinateprecision", "eventdate", "day", "month", "year", "taxonkey",
+                                             "specieskey", "basisofrecord", "issue"),
+                           filter_basisofrecord = c("HUMAN_OBSERVATION", "PRESERVED_SPECIMEN", "OBSERVATION", 
+                                                    "MATERIAL_SAMPLE", "MACHINE_OBSERVATION"),
+                           issue_geospatial = c("ZERO_COORDINATE", "COORDINATE_INVALID", "COORDINATE_OUT_OF_RANGE", 
+                                                "COUNTRY_COORDINATE_MISMATCH", "COORDINATE_REPROJECTION_FAILED", 
+                                                "COORDINATE_REPROJECTION_SUSPICIOUS", "GEODETIC_DATUM_INVALID"),
+                           issue_taxonomic = c("TAXON_MATCH_FUZZY", "TAXON_MATCH_HIGHERRANK", "TAXON_MATCH_NONE"),
+                           issue_basisofrecord = c("BASIS_OF_RECORD_INVALID"),
+                           issue_date = NULL,
+                           select_fields = NULL,
+                           verbose = TRUE,
+                           return_data = TRUE)
 {
-
+  
   ## Load required packages
   if("pacman"%in%installed.packages()){
     library(pacman)
@@ -83,8 +83,8 @@ filter.gbifcsv = function (gbif.downloaded.data,
   ## Read in the data
   dat <- gbif.downloaded.data
   
-    ## catch the original number of records 
-    n.rec.start <- nrow(dat)
+  ## catch the original number of records 
+  n.rec.start <- nrow(dat)
   
   ## Drop unwanted columns
   names(dat) <- sapply(names(dat), tolower)
@@ -107,8 +107,8 @@ filter.gbifcsv = function (gbif.downloaded.data,
   
   ## Filter by coordinate uncertainty (if 'coordinateuncertaintyinmeters' field is provided)
   dat <- dat[!which(coordinateuncertaintyinmeters > spatial.uncertainty.m)]
-    ## note: !which() retains NAs unline which()
-
+  ## note: !which() retains NAs unline which()
+  
   ## Filter records by coordinate precision i.e. records with less than 2 decimal places
   dat <- dat[!which(sapply((strsplit(sub('0+$', '', as.character(dat$decimallongitude)), ".", fixed = TRUE)), function(x) nchar(x[2])) < 2)]
   dat <- dat[!which(sapply((strsplit(sub('0+$', '', as.character(dat$decimallatitude)), ".", fixed = TRUE)), function(x) nchar(x[2])) < 2)]
@@ -138,9 +138,9 @@ filter.gbifcsv = function (gbif.downloaded.data,
   dat <- dat[!grep(paste0(c("sp.", "spp", "sp"), "$", collapse = "|"), dat$species, perl = TRUE, value = FALSE)]
   
   ## Remove records with scientific names not included in gbif backbone taxonomy
-    ## 'canonicalName' is the 'scientificName' without authorship
+  ## 'canonicalName' is the 'scientificName' without authorship
   gbif.nub.taxonomy <- gbif.nub.taxonomy[, .(taxonID, canonicalName,taxonRank, taxonomicStatus, 
-                           kingdom, phylum, class, order, family, genus)]
+                                             kingdom, phylum, class, order, family, genus)]
   if(!is.null(subset.gbifnubtaxonomy.byclass)){
     gbif.nub.taxonomy <- gbif.nub.taxonomy[class==subset.gbifnubtaxonomy.byclass]
   } else {
@@ -148,12 +148,12 @@ filter.gbifcsv = function (gbif.downloaded.data,
     check_list <- dat_species_list[which(!(dat_species_list %in% unique(gbif.nub.taxonomy$canonicalName)), arr.ind = TRUE)]
     if(!identical(check_list, character(0))){
       dat <- dat[!species %in% check_list]
-      } # end !identical(check_list, character(0))    ## cannot catch character(0) with is.null
+    } # end !identical(check_list, character(0))    ## cannot catch character(0) with is.null
   } # end !is.null(gbif.nub.taxonomy)
   
   ## Remove duplicates identified by species name and coordinates
-    ## Note: MaxEnt only considers one point per lat-ong for a species, so time information 
-    ## associated with a record is irrelevant because we remove all spatial duplicates
+  ## Note: MaxEnt only considers one point per lat-ong for a species, so time information 
+  ## associated with a record is irrelevant because we remove all spatial duplicates
   dat <- unique(dat, by =c("species", "decimallongitude", "decimallatitude"))
   
   ## Retain species with >= 20 occurrences
@@ -172,7 +172,7 @@ filter.gbifcsv = function (gbif.downloaded.data,
     }
   }
   dat <- dat[, select_fields, with = FALSE]
-
+  
   ## Write the data to file, if an output folder is specified
   if(!is.null(output_folder))
   {
@@ -181,11 +181,13 @@ filter.gbifcsv = function (gbif.downloaded.data,
       dir.create(output_folder)
     }  # end if !dir.exists
     
-    output_path <- file.path(output_folder,paste0(Sys.Date(), "_", output_name,".csv"))
-    write.csv(dat, output_path, row.names=FALSE)
+    saveRDS(dat, file = file.path(output_folder, output_name))
+    
+    
     
     ## Write a log file describing how the data was created *************************************
-    fileConn<-file(file.path(output_folder,paste0(output_name,"_",Sys.Date(),"_log_file.txt")),'w')
+    fileConn<-file(file.path(output_folder,paste0(
+      tools::file_path_sans_ext(output_name),"_",Sys.Date(),"_logfile.txt")),'w')
     writeLines("#######################################################################",con = fileConn)
     writeLines("###",con = fileConn)
     writeLines("### GBIF data filtration log file ",con = fileConn)
@@ -194,7 +196,7 @@ filter.gbifcsv = function (gbif.downloaded.data,
     writeLines("###",con = fileConn)
     writeLines("#######################################################################",con = fileConn)
     writeLines("",con = fileConn)
-    writeLines(paste0("Output data file = ", output_path),con = fileConn)
+    writeLines(paste0("Output data file = ", file.path(output_folder, output_name)),con = fileConn)
     writeLines(paste0("Domain mask applied = ", domain.mask@file@name),con = fileConn)
     writeLines(paste0("Data restricted to after ", start.year),con = fileConn)
     writeLines(paste0("Data restricted to spatial uncertainty < ",spatial.uncertainty.m, "m"),con = fileConn)
@@ -204,20 +206,22 @@ filter.gbifcsv = function (gbif.downloaded.data,
     close(fileConn) 
     ## *****************************************************************************************
   } # end !is.null(output_folder)
-
+  
   # write some feedback to the terminal
   if(verbose)
   {
     msg1 = 'Returned object is a data.table'
-    msg2 = paste('These data have been also been written to ', output_path)
+    msg2 = paste('These data have been also been written to ', file.path(output_folder, output_name))
     msg3 = paste("# records in raw data = ", n.rec.start)
     msg4 = paste("# records in filtered data = ", dim(dat)[1])
     msg5 = paste("# records removed (including spatial duplicates) =", n.rec.start-dim(dat)[1])
     cat(paste(msg1, msg2, msg3, msg4, msg5, sep = '\n'))
   } # end if(verbose)
-
-  return(dat)
-    
+  
+  if(return_data){
+    return(dat)
+  }
+  
 } # end function
 
 
@@ -254,7 +258,6 @@ filter.gbifcsv = function (gbif.downloaded.data,
 #   ## ---- ----------------------------------------------------------------------
 #   
 
- 
-  
-  
-  
+
+
+
