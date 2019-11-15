@@ -1,5 +1,5 @@
 
-## Data download and processing for regional trade analysis (Vnm + Aus)
+## Data download for regional SSP analysis (Vnm + Aus)
 
 ## Set work environment
 x <- c('data.table', 'rgdal', 'rgeos', 'sp', 'raster', 'rgbif', 'sp', 'GADMTools', 'sf', 'tools')

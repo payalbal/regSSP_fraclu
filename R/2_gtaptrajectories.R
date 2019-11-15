@@ -9,29 +9,29 @@ library(sp)
 library(raster)
 source(file.path(".", "R", "1_functions.R"))
 regSSP_birds_data <- '/Volumes/discovery_data/regSSP_birds_data' # change as per server: boab = "./data"
-layer_path <- file.path(regSSP_birds_data, "RData") # change as per server: boab - "./RDdata"
-out_path <- file.path(regSSP_birds_data, "lu_output")
+rdata_path <- file.path(regSSP_birds_data, "RData") # change as per server: boab - "./RData"
+lu_path <- file.path(regSSP_birds_data, "lu_output")
 
 
 ## Define global variables
 ssps <- paste0("ssp", 1:3)
 timesteps <- c(1, 11, 21, 31, 41, 51) # these time steps we want outputs for to use in land use model
-lu_names <- c("urban", "crop", "herb", "shrub", "Oforest", "Cforest")
+lu_classes <- c("urban", "crop", "grass", "shrub", "Oforest", "Cforest")
 year_range <- 2019:2070
 
 
 ## Estimate land demand for lu classes for each timestep
 for (region in c("vn", "aus")){
   print(paste0("processing ", region, "... "))
-  landuse <- readRDS(file.path(layer_path, paste0("covariates_", region, ".rds")))
+  landuse <- readRDS(file.path(rdata_path, paste0("covariates_", region, ".rds")))
   landuse <- landuse[[which(names(landuse) == "landuse")]]
   lu_yr0 <- table(landuse[])[-c(7,8)] # lu for base year (excluding classes 7 & 8)
-  names(lu_yr0) <- lu_names
+  names(lu_yr0) <- lu_classes
   
   for (j in 1:length(ssps)){
     yrs <- length(year_range)
     lu_byYear <- matrix(NA, nrow = yrs, ncol = length(lu_yr0)) #empty matrix to store lu change trajaectories
-    colnames(lu_byYear) <- lu_names
+    colnames(lu_byYear) <- lu_classes
     rownames(lu_byYear) <- paste0("yr", year_range)
     lu_byYear[1,] <- lu_yr0
     
@@ -66,10 +66,10 @@ for (region in c("vn", "aus")){
     
     ## Crop
     ## Load proportions harvested in yr0 (here, as 2019)
-    yr0_bysector <- readRDS(file.path(layer_path, paste0("harvested2016_", region, ".rds")))
+    yr0_bysector <- readRDS(file.path(rdata_path, paste0("harvested2016_", region, ".rds")))
     
     ## Load estimated land endowments by sector for 2020 - 2070 (estimated from gtap data)
-    yrsAll_bysector <- readRDS(file = file.path(layer_path, paste0("gtap_landendowments_", region, "_", ssps[j], ".rds")))
+    yrsAll_bysector <- readRDS(file = file.path(rdata_path, paste0("gtap_landendowments_", region, "_", ssps[j], ".rds")))
     
     ## Calculate mean sector output, weighted by fao estimates of harvests
     lu_byYear[,2] <- round(lu_yr0[2] * (1 + colMeans(yr0_bysector[,2] * yrsAll_bysector[which(rownames(yrsAll_bysector)%in% yr0_bysector$gtap_sector),]/100 * nrow(yr0_bysector))))
@@ -79,7 +79,7 @@ for (region in c("vn", "aus")){
     print(paste0("Land demand for ", region, " & ", ssps, ":")[j])
     print(rowSums(demand))
     print("----------------------")
-    saveRDS(demand, file.path(out_path, paste0("landdemand_", region, "_", ssps[j], ".rds")))
+    saveRDS(demand, file.path(lu_path, paste0("landdemand_", region, "_", ssps[j], ".rds")))
   }
 }
 

@@ -1,252 +1,419 @@
-# set workign environment
+## Landuse model
+## Referennce docs:
+## Moulds et al. 2015
+## lulcc_workflow (Fig )
+
+
+## Set up work environment ####
 rm(list = ls())
 gc()
 # system("ps")
 # system("pkill -f R")
 
+# setwd("./regtrade/")
 x <- c('sp', 'raster', 'glmnet', 'lulcc', 'doParallel')
 lapply(x, require, character.only = TRUE)
+# library(lattice)
+# library(latticeExtra)
+# library(RColorBrewer)
+# library(rasterVis)
+# library(Matrix)
+# library(glmnet)
+# library(proto)
+# library(gsubfn)
+# library(lulcc)
 
-source(file.path(".", "R", "1_functions.R"))
-data_path <- file.path(".", "RData")
-output_path <- file.path(".", "lu_output")
-files <- list.files(data_path, full.names = T)
-
-
-## ***** Specify region for analysis ***** ####
-country_abbr <- "vnm" #aus and vnm
-
-
-## I. Define covariates ####
-mask <- readRDS(file.path(".", "RData", paste0("mask_", country_abbr, ".rds")))
-
-covariates_all <- readRDS(files[grepl(paste0("covariates_", 
-                                             country_abbr), files)])
-names(covariates_all)
-covariates_all$landuse[covariates_all$landuse == 0] <- NA # ?? to check for zero values?
-
-
-## Observed landuse at t=0
-lu_names <- c("urban", "crop", "herb", "shrub", "Oforest", "Cforest")
-lu_original <- lu <- covariates_all$landuse; table(lu[])
-lu_exclude <- c(7,8) # lu 7 & 8 are not modelled but added back to the predicted maps
-  ## lu_7: 'herbaceous wetland, moss, lichen' 
-  ## lu_8: 'bare, sparese, ice'
-lu[lu%in%lu_exclude] <- NA; table(lu[])
-obs <- ObsLulcRasterStack(x=lu,categories=c(1:6),
-                          labels=paste0("lu", 1:6), t = 0)
-
-## Protected areas
-pa <- covariates_all$pa; table(pa[])
-## mask out classes that can't change
-pa[which(lu_original[]%in%lu_exclude)] <- 0; table(pa[]); plot(pa)
-
-## Drop unnwanted covariates
-covs_exclude <- c("pa", "popd", "landuse")
-covariates <- covariates_all[[-which(grepl(paste(covs_exclude, 
-                                                 collapse = "|"), 
-                                           names(covariates_all)))]] 
-
-## Discard correlated covariates
-cov_df <- getValues(covariates)
-rows <- nrow(cov_df)
-cov_df <- na.omit(cov_df)
-cov_df <- scale(cov_df) # ??
-subs <- sample(1:nrow(cov_df), 15000)
-cors <- cor(cov_df[subs,])
-preds <- rownames(reduce_predset(cors))
-  ## reduce_predset removes predictors from correlated pairs (spearmens > 0.7)
-covariates <- covariates[[which(names(covariates)%in%preds)]]
-covs_original_names <- names(covariates)
-bio_inds <- which(grepl(covs_original_names, pattern = "bio"))
-
-## ??
-cov_cent <- attr(cov_df,c("scaled:center"))[which(colnames(cov_df)%in%covs_original_names)]
-cov_scal <- attr(cov_df,c("scaled:scale"))[which(colnames(cov_df)%in%covs_original_names)]
-
-## Rename covariates as per lulcc
-names(cov_cent) <- names(cov_scal) <- names(covariates) <-  paste0("ef_", sprintf("%02d", 1:(nlayers(covariates))))
-covariates <- stack(scale(covariates, center = cov_cent, scale = cov_scal)) ## ??
+regSSP_birds_data <- '/Volumes/discovery_data/regSSP_birds_data' 
+  ## change as per server: boab = "./data"
+rdata_path <- file.path(regSSP_birds_data, "RData") 
+  ## change as per server: boab - "./RData"
+lu_path <- file.path(regSSP_birds_data, "lu_output") 
+  ## change as per server: boab - "./lu_output"
+if(!dir.exists(lu_path)){dir.create(lu_path)}
+files <- list.files(rdata_path, full.names = T)
 
 
-## II. Model specification ####
-## Partition covariate data into training and testing set for GLM - 10% of data used to fit models
-ef <- ExpVarRasterList(covariates)
-part <- sample(which(!is.na(obs[[1]][])), 20000) ## why 20000, 10% is 150000
-train.data <- getPredictiveModelInputData(obs=obs, ef=ef, cells=part, t=0)
-train.data <- as.matrix(train.data)
+## Prepare lulcc data ####
+regions <- c('vn', 'aus')
 
-## Define model fitting functions
-cats <- obs@labels
-forms <- list()
-for(i in 1:length(cats)){
-  test <- cv.glmnet(y = train.data[,i], x = train.data[,-c(1:6)], family = "binomial", alpha = 1)
-  not_sig <- names(which(coef(test)[,1] == 0))
-  if(length(not_sig)==0){
-    forms[[i]] <- as.formula(paste(cats[i], "~", paste(names(ef), collapse="+")))
-  }else{
-    forms[[i]] <- as.formula(paste(cats[i], "~", paste(names(ef)[-which(names(ef)%in%not_sig)], collapse="+")))
-  }
-  print(i)
-}
-
-train.data <- as.data.frame(train.data)
-glm.models <- glmModels(formula=forms, family=binomial, data=train.data, obs=obs)
-
-  # ## -----------------------------------
-  #   ## Save variables
-  #     save(
-  #       data_path,
-  #       output_path,
-  #       files,
-  #       preds, 
-  #       pa,
-  #       lu,
-  #       obs,
-  #       lu_names,
-  #       lu_exclude,
-  #       covs_exclude,
-  #       covariates, 
-  #       lu_original,
-  #       covs_original_names, 
-  #       bio_inds, 
-  #       cov_cent, 
-  #       cov_scal, 
-  #       ef,
-  #       glm.models,
-  #       mask,
-  #       file = paste0(output_path, "/landuse_preds_", country_abbr, ".RData")
-  #     )
-  # 
-  #   ## Reload workspace 
-  #     rm(list = ls(all = TRUE))
-  #     gc()
-  #     source(file.path(".", "R", "1_functions.R"))
-  #     country_abbr <- "vnm" #aus and vnm
-  #     load(paste0(output_path,"/landuse_preds_", country_abbr, ".RData"))
-  #     
-  # ## -----------------------------------
+for(region in regions){
   
-## Define transition matrix
+  source(file.path(".", "R", "1_functions.R"))
+  print(paste0("processing ", region, "... "))
+  
+  ## Load data ####
+  reg_mask <- readRDS(file.path(rdata_path, paste0("mask_", region, ".rds")))  
+  covariates_all <- readRDS(files[grepl(paste0("covariates_", region), files)])
+  print("original covariate set: ")
+  print(names(covariates_all))
+  
+  ## Landuse layer
+  lu_original <- lu_reduced <- covariates_all$landuse
+  print("original landuse classes: ")
+  print(table(lu_original[]))
+  
+  print("Check: 0 values in land use layer: ")
+  print(lu_original[lu_original == 0]) # check for zero values
+  
+  lu_classes <- c("urban", "crop", "grass", "shrub", "Oforest", "Cforest")
+  lu_exclude <- c(7,8) 
+    ## lu 7 & 8 are not modelled but added back to the predicted maps
+    ## lu_7: 'herbaceous wetland, moss, lichen' 
+    ## lu_8: 'bare, sparese, ice'
+  lu_reduced[lu_reduced%in%lu_exclude] <- NA
+  print("reduced landuse classes: ")
+  print(table(lu_reduced[]))
+  
+  ## Protected areas layer
+  pa <- covariates_all$pa
+  print("original protected area layer: ")
+  print(table(pa[])); plot(pa)
+  ## mask PA classes that can't change
+  pa[which(lu_original[]%in%lu_exclude)] <- 0
+  print("reduced protected area layer: ")
+  print(table(pa[])); plot(pa)
+  
+  
+  ## Define observed landuse at t=0 ####
+  obs <- ObsLulcRasterStack(x=lu_reduced,categories=c(1:6),
+                            labels=paste0("lu", 1:6), t = 0)
+  
+  
+  ## Prepare explanatory variables ####
+  covs_exclude <- c("pa", "popd", "landuse")
+  covariates <- covariates_all[[-which(grepl(paste(covs_exclude, collapse = "|"), 
+                                             names(covariates_all)))]] 
+  print("reduced covariate set: ")
+  print(names(covariates))
+  
+  ## Discard correlated covariates
+  cov_df <- getValues(covariates)
+  print(paste0("# data points in covariates: ", nrow(cov_df)))
+  cov_df <- na.omit(cov_df)
+  print(paste0("# data points in covariates without NAs: ", nrow(cov_df)))
+  
+  cov_df <- scale(cov_df) # scale values for comparison
+  subs <- sample(1:nrow(cov_df), 15000) # sample values
+  cors <- cor(cov_df[subs,]) # find correlation in covariates
+  preds <- rownames(reduce_predset(cors))
+  # reduce_predset: SK's function to remove correlated (spearmens > 0.7) covariates 
+  covariates <- covariates[[which(names(covariates)%in%preds)]]
+  cov_names <- names(covariates)
+  bio_inds <- which(grepl(cov_names, pattern = "bio"))
+  
+  ## Centre and scale covariate data for lulcc
+  cov_cent <- attr(cov_df,c("scaled:center"))[which(colnames(cov_df)%in%cov_names)]
+  cov_scal <- attr(cov_df,c("scaled:scale"))[which(colnames(cov_df)%in%cov_names)]
+  covariates <- stack(scale(covariates, center = cov_cent, scale = cov_scal))
+  ## Rename covariates as per lulcc
+  names(covariates) <- paste0("ef_", sprintf("%02d", 1:(nlayers(covariates))))
+  
+  
+  ## Models ####
+  print(paste0("defining models for ", region, " ..."))
+  
+  ## Partition observed data into training and test set for GLM
+  train.dat.partition <- 20000 # can change to 10% later
+  part <- sample(which(!is.na(obs[[1]][])), train.dat.partition)
+  
+  ## Extract covariate data for the training partition
+  ef <- ExpVarRasterList(covariates)
+  train.data <- getPredictiveModelInputData(obs=obs, ef=ef, cells=part, t=0)
+  train.data <- as.matrix(train.data)
+  
+  ## Define models for each lu class 
+  lu_cats <- obs@labels
+  forms <- list()
+  
+  for(i in 1:length(lu_cats)){
+    
+    ## Get coefficients by fitting glmnet on training data 
+    test <- cv.glmnet(y = train.data[,i], 
+                      x = train.data[,-c(1:6)], family = "binomial", alpha = 1)
+    
+    ## Identify non-significant covariates
+    not_sig <- names(which(coef(test)[,1] == 0))
+    
+    ## Specify model formula for each lu class using significant variables only
+    if(length(not_sig)==0){
+      forms[[i]] <- 
+        as.formula(paste(lu_cats[i], "~", paste(names(ef), collapse="+")))
+    }else{
+      forms[[i]] <- 
+        as.formula(paste(lu_cats[i], "~", 
+                         paste(names(ef)[-which(names(ef)%in%not_sig)], 
+                               collapse="+")))
+    }
+    print(paste0(lu_cats[i], "..."))
+  }
+  
+  ## Fit models (glms) on training data
+  train.data <- as.data.frame(train.data)
+  glm.models <- glmModels(formula=forms, family=binomial, 
+                          data=train.data, obs=obs)
+  # see link for error: https://stats.stackexchange.com/questions/11109/how-to-deal-with-perfect-separation-in-logistic-regression
+  
+  ## Save variables for region ####
+  print(paste0("saving lulcc data for ", region, " ..."))
+  save(
+    regions,
+    region, 
+    reg_mask,
+    lu_original,
+    lu_classes,
+    lu_exclude,
+    lu_reduced,
+    pa,
+    obs,
+    covs_exclude,
+    preds,
+    cov_names,
+    bio_inds,
+    cov_cent,
+    cov_scal,
+    ef,
+    glm.models,
+    file = paste0(lu_path, "/lulcc_dat_", region, ".RData")
+  )
+  saveRDS(readAll(covariates), file = paste0(lu_path, "/lucovs_", region, ".rds"))
+  print(paste0("lulcc data for ", region, " saved as: ", 
+               paste0(lu_path, "/lulcc_dat_", region, ".RData")))
+  print(paste0("lulcc covariates for ", region, " saved as: ", 
+               paste0(lu_path, "/lucovs_", region, ".rds")))
+  print("-----------------------------------")
+  
+  rm(list=setdiff(ls(), c("regSSP_birds_data",
+                          "rdata_path",
+                          "lu_path",
+                          "files",
+                          "regions")))
+  gc()
+}
+ rm(list = ls())
+
+
+## ***** restart here ***** ####
+ rm(list = ls())
+ gc()
+ # system("ps")
+ # system("pkill -f R")
+ 
+ setwd("./regtrade/")
+ x <- c('sp', 'raster', 'glmnet', 'lulcc', 'doParallel')
+ lapply(x, require, character.only = TRUE)
+ 
+
+ ## Set up work environment ####
+regSSP_birds_data <- '/Volumes/discovery_data/regSSP_birds_data' 
+  ## change as per server: boab = "./data"
+rdata_path <- file.path(regSSP_birds_data, "RData") 
+  ## change as per server: boab - "./RData"
+lu_path <- file.path(regSSP_birds_data, "lu_output") 
+  ## change as per server: boab - "./lu_output"
+files <- list.files(rdata_path, full.names = T)
+regions <- c('vn', 'aus')
+
+
+## Predictions ####
+## ***** Specify region for analysis ***** ####
+##  Rerun for c("vn", "aus")
+region <- 'aus'
+
+## Load workspace for region
+source(file.path(".", "R", "1_functions.R"))
+load(paste0(lu_path,"/lulcc_dat_", region, ".RData"))
+covariates <- readRDS(paste0(lu_path, "/lucovs_", region, ".rds"))
+
+## Define transition matrix & clues parameters ####
 w <- matrix(1, 6, 6) 
-w[1,2:6] <- 0 # because lu_1 'crop' cannot change to any other lu
-elas = c(1, 0.6, 0.6, 0.6, 0.7, 0.9)
+w[1,2:6] <- 0 # because lu_1 'urban' cannot change to any other land use
+elas = c(1, 0.6, 0.6, 0.6, 0.7, 0.9) # will need sesitivity analysis
 clues.parms <- list(jitter.f=0.002,
                     scale.f=0.000001,
-                    max.iter=5000,
+                    max.iter=10000, # changed from 5000,
                     max.diff= 500,
                     ave.diff= 500)
 
-## Specify scenarios
-scens <- c(26, 85)
+## Specify scenarios ####
+ssps <- paste0("ssp", 1:3)
+rcps <- c("45", "60", "85")
+
 ## Quartiles under which to predict (main results are under q2, the medians)
-qs <- c("q2", "q1", "q3")
+quartiles <- c("q2", "q1", "q3")
 
 ## Specify time steps
-yrs <- 2070 - 2018
-timesteps <- c(12, 22, 32, 42, 52)
+yrs <- 2070 - 2019
+timesteps <- c(11, 21, 31, 41, 51)
 
-## Log file
-n <- length(which(!is.na(obs@layers[[1]][])))
-logfile <- file.path(output_path, paste0("landuse_", country_abbr, "_log.txt"))
+## Initiate log file
+obs_n <- length(which(!is.na(obs@layers[[1]][]))) # non-NA values in observed lu data
+logfile <- file.path(lu_path, paste0("landuse_", region, "_log.txt"))
 writeLines(c(""), logfile)
 
-## Storage for final demand trajectories (icnluding grass/shrub and forest estimations)
-cl <- makeCluster(3)
+## Prepare final demand trajectories (icnluding grass/shrub and forest estimations)
+cl <- makeCluster(3, outfile="")
 registerDoParallel(cl)
 
-for (j in 1: length(scens)){
-  foreach(k = 1:length(qs), .packages = c("lulcc")) %dopar% {
-    cat(paste("Preparing quantile ", country_abbr, scens[j], k, "\n"), file = logfile, append = T)
+for (j in 1: length(ssps)){
+  
+  ## Load observed land-use data
+  obs2 <- obs
+  
+  ## Load land-use demand for ssp-rcp scenario
+  dmd <- as.matrix(readRDS(file.path(lu_path, paste0("landdemand_", 
+                                                     region, "_", ssps[j], 
+                                                     ".rds"))))
+
+  foreach(k = 1:length(quartiles), .packages = c("lulcc")) %dopar% {
     
-    ## Load demand file for current scenario and quartile
-    dmd <- as.matrix(readRDS(file.path(".", "output", paste0("landdemand_", country_abbr, "_", scens[j], ".rds"))))
-    cat('t1', file = logfile, append = T)
-    obs2 <- obs
+    msg1 = paste0("Preparing quantile for region ", 
+               region, " ... Quartile: ", quartiles[k], " | Scenario: ", 
+               ssps[j],  "-rcp", rcps[j], "\n")
+    msg2 = paste0(Sys.time(), "\n")
+    cat(paste(msg1, msg2, sep = '\n'),  file = logfile, append = T)
     
-    # dmd <- matrix(rep(dmd[1,], 6), ncol = 6, byrow = TRUE)
-    ## Load required future layers for predictions
-    cat('t2', file = logfile, append = T)
-    fut <- readRDS(files[grepl(paste0("bio", paste0(c(qs[k], scens[j], country_abbr), collapse = "_")), files)])
-    cat('t3', file = logfile, append = T)
-    fut <- fut[[which(grepl(paste0(preds, collapse = "|"), names(fut)))]]
-    cat('t4', file = logfile, append = T)
-    names_fut <- names(covariates)[bio_inds]
-    cat('t5', file = logfile, append = T)
-    names(fut) <- names_fut
-    cat('t6', file = logfile, append = T)
-    fut <- crop(fut, mask)
-    cat('t7', file = logfile, append = T)
-    fut <- stack(scale(readAll(fut), center = cov_cent[bio_inds], scale = cov_scal[bio_inds]))
-    cat('t8', file = logfile, append = T)
-    #v Calculate annual increment of dynamic layers (the ones that change, bioclim)
-    incr <- (fut - covariates[[bio_inds]])/yrs
-    cat('t9', file = logfile, append = T)
-    #vi Load static (don't change into future) and dynamic layers into separate objects, so they can be recombined into future sets easily 
+    ## Load dynamic covariates (i.e. future bioclim layers) for ssp-rcp scenario and quartile
+    if(region == 'vn') {
+      fut_bioclim <-
+        readRDS(files[grepl(paste0("bio", paste0(c(
+          quartiles[k], rcps[j], paste0(region, "m")), collapse = "_")), files)])
+    } else {
+      fut_bioclim <-
+        readRDS(files[grepl(paste0("bio", paste0(c(
+          quartiles[k], rcps[j], region), collapse = "_")), files)])
+    }
+    
+    ## Discard correlated covariates
+    fut_bioclim <-
+      fut_bioclim[[which(grepl(paste0(preds, collapse = "|"), names(fut_bioclim)))]]
+    
+    ## Name covariates as per lulcc
+    names_dyn_cov <- names(covariates)[bio_inds]
+    names(fut_bioclim) <- names_dyn_cov
+    
+    ## Crop raster by mask
+    fut_bioclim <- crop(fut_bioclim, reg_mask)
+    
+    ## Scale covariates
+    fut_bioclim <-
+      stack(scale(readAll(fut_bioclim), center = cov_cent[bio_inds], 
+                  scale = cov_scal[bio_inds]))
+    
+    ## Estimate annual increment of dynamic covariates (i.e. future bioclim layers)
+    annual_incr_dyn <- (fut_bioclim - covariates[[bio_inds]])/yrs
+    
+    ## Load static and dynamic covariates into separate objects
     cov_stat <- covariates[[-bio_inds]]
-    cat('t10\n', file = logfile, append = T)
+    # cov_names[-bio_inds]
+    
     cov_dyn <- covariates[[bio_inds]]
-    rm(fut)
+    # cov_names[bio_inds]
+    rm(fut_bioclim)
     
     
     for(t in 1:length(timesteps)){
-      cat(paste("Preparing model ", country_abbr, scens[j], k, timesteps[t], "\n"), file = logfile, append = T)
-      cat(paste0(Sys.time(), "\n"),  file = logfile, append = T)
       
-      #vii make timestep specific data stack to predict suitability model to
-      covariates_final <- stack(cov_stat, cov_dyn + (incr * timesteps[t]))
+      msg1 = paste0("Preparing model for region ", 
+                 region, " ... Quartile: ", quartiles[k], " | Scenario: ", 
+                 ssps[j],  "-rcp", rcps[j], " | Timestep: ", t, "\n")
+      msg2 = paste0(Sys.time(), "\n")
+      cat(paste(msg1, msg2, sep = '\n'),  file = logfile, append = T)
+      
+      ## Prepare timestep specific data stack to predict lu suitability
+      covariates_final <- stack(cov_stat, cov_dyn + 
+                                  (annual_incr_dyn * timesteps[t]))
       gc()
       
-      #iix determine on the fly demand for grass, shrub and open and closed forest land, based on predicted suotability
+      ## Estimate predicted suitability for grass, shrub and Oforest and Cforest lu classes
       subs2 <- sample(which(!is.na(covariates_final[[1]][])), 10000)
-      pgrass <- mean(predict(glm.models@models[[c(3)]], data = covariates_final[subs2], type = "response"))
-      pshrub <- mean(predict(glm.models@models[[c(4)]], data = covariates_final[subs2], type = "response"))
-      pforesto <- mean(predict(glm.models@models[[c(5)]], data = covariates_final[subs2], type = "response"))
-      pforestc <- mean(predict(glm.models@models[[c(6)]], data = covariates_final[subs2], type = "response"))
+      ## Predict for lu_classes[3]: "grass"
+      pgrass <- 
+        mean(predict(glm.models@models[[c(3)]], 
+                     data = covariates_final[subs2], type = "response"))
+      ## Predict for lu_classes[4]: "shrub"
+      pshrub <- 
+        mean(predict(glm.models@models[[c(4)]], 
+                     data = covariates_final[subs2], type = "response"))
+      ## Predict for lu_classes[5]: "Oforest"
+      pforesto <- 
+        mean(predict(glm.models@models[[c(5)]], 
+                     data = covariates_final[subs2], type = "response"))
+      ## Predict for lu_classes[6]: "Cforest"
+      pforestc <- 
+        mean(predict(glm.models@models[[c(6)]], 
+                     data = covariates_final[subs2], type = "response"))
       
+      ## Proportional suitability for each lu class
       sp <- c(pgrass, pshrub, pforesto, pforestc)
-      f <- sp / sum(sp)
-      d <- n - sum(dmd[i+1,], na.rm = TRUE)
+      prop_suit <- sp / sum(sp)
+      rm(sp)
       
-      dmd[i+1,3] <- round(d * f[1])
-      dmd[i+1,4] <- round(d * f[2])
-      dmd[i+1,5] <- round(d * f[3])
-      dmd[i+1,6] <- round(d * f[4])
-      adj <- rowSums(dmd)[1] - rowSums(dmd)[i + 1]
+      ## Area avialable for change: total area - (ar(urban) + ar(crop))
+      area_avail <- obs_n - sum(dmd[t+1,], na.rm = TRUE)
+      
+      ## Estimate lu demand based on predicted suitability * area available
+      dmd[t+1,3] <- round(area_avail * prop_suit[1])
+      dmd[t+1,4] <- round(area_avail * prop_suit[2])
+      dmd[t+1,5] <- round(area_avail * prop_suit[3])
+      dmd[t+1,6] <- round(area_avail * prop_suit[4])
+      
+      ## Estimate unallocated land area at t+1 compared to t
+      unalloc_land <- rowSums(dmd)[1] - rowSums(dmd)[t + 1]
+      
+      ## Allocate unallocated land area to a randomly selected landuse class in t+1
       col_adj <- sample(1:ncol(dmd), 1)
-      dmd[i+1, col_adj] <- dmd[i+1, col_adj] + adj
-      if(rowSums(dmd)[1] - rowSums(dmd)[i + 1] != 0) stop("sum of demand not equal to n of cells")
+      dmd[t+1, col_adj] <- dmd[t+1, col_adj] + unalloc_land
       
-      #ix reassign original predictor names so they can be found by predict function
-      names(covariates_final)[bio_inds] <- names_fut
+      ## Check if adjusted allocation sums to total area
+      if(rowSums(dmd)[1] - rowSums(dmd)[t + 1] != 0) stop("sum of demand not equal to total area")
+      
+      ## Reassign original predictor names so they can be found by predict function
+      names(covariates_final)[bio_inds] <- names_dyn_cov
       ef <- ExpVarRasterList(readAll(covariates_final), pattern = "ef")
       
-      #synch na 9otherwise clues won't converge...
-      inds <- unique(c(which(is.na(obs2@layers[[1]][])), which(is.na(ef@maps[[1]][]))))
+      ## Sync NAs otherwise clues won't converge...
+      inds <- unique(c(which(is.na(obs2@layers[[1]][])), 
+                       which(is.na(ef@maps[[1]][]))))
+      
       for (efs in 1:length(ef)){
         ef@maps[[efs]][inds] <- NA
       }
       pa[inds] <- NA
       obs2@layers[[1]][inds] <- NA
-      dmd[i,] <- table(obs2[])
+      dmd[t,] <- table(obs2[])
       
-      cat(paste("Starting CLUE", country_abbr, scens[j], k, timesteps[t], "\n"), file = logfile, append = T)
+      msg1 = paste0("Starting CLUE for region ", 
+                 region, " ... Quartile: ", quartiles[k], " | Scenario: ", 
+                 ssps[j],  "-rcp", rcps[j], " | Timestep: ", t, "\n")
+      msg2 = paste0(Sys.time(), "\n")
+      cat(paste(msg1, msg2, sep = '\n'),  file = logfile, append = T)
       
+      ## Specify clues model
       clues.model <- CluesModel(obs = obs2, 
                                 ef = ef, 
                                 models = glm.models, 
                                 time = 0:1,
-                                demand=dmd[c(i:(i+1)),], 
+                                demand=dmd[c(t:(t+1)),], 
                                 rules = w, 
                                 params = clues.parms, 
                                 elas = elas,
                                 mask = pa)
+      
+      ## Allocate predicted change in lu classes
       st <- system.time(ordered_out <- allocate(clues.model))
       cat(paste(st, "\n"), file = logfile, append = T)
       
-      #3.b Allocate changes in line with demand, suitability model, and allocation order (see Methods)
+      ## LU model not converging....
+      ## when run for j = x, k = x, t = x
+      ## Warning implies that the model did not converge. To check compare 
+      ## table(ordered_out@obs[])
+      ## with dmd in t+1
+      ## when run in parallel, error: error in unserialize(socklist[[n]]) : error reading from connection
+      ## seems to be a problem in parallelisation, run in serial or ask for more memory on boab/run on MRC
       
-      # #i Make model object
+      
+      # ## Allocate changes in line with demand, suitability model, and allocation order (see Methods)
+      # ## Make model object
       # ordered.model <- OrderedModel(obs=obs2,
       #                               ef=ef,
       #                               models=glm.models,
@@ -255,36 +422,45 @@ for (j in 1: length(scens)){
       #                               order=c(1:6),
       #                               rules = w,
       #                               mask = pa)
+      # ## Allocate predicted change in lu classes
+      # ordered_out <- allocate(ordered.model, stochastic = F)
       
-      
-      #------------------------------#
-      #####---IV. ALLOCATE CHANGES####
-      #------------------------------#
-      #ordered_out <- allocate(ordered.model, stochastic = F)
-      
-      #4.a new land-use map becomes input for next iteration
+      ## New land-use map becomes input for next iteration of t
       obs2 <- ObsLulcRasterStack(ordered_out@output[[2]])
-      
-      print(paste0(qs[k], " | Scenario: ", scens[j], " | time step: ", i))
+      print(paste0("Quartile: ", quartiles[k], " | Scenario: ", 
+                   ssps[j],  "-rcp", rcps[j], " | Timestep: ", t))
     }
     rm(ef)
-    #4.b Store outputs
+    
+    ## Save outputs
     out <- ordered_out@output[[2]]
-    sum(table(out[]))
+    
+    ## Check if total area in output == total area in observed
+    print("Is total area of predicted lu map = total area of observed lu map: ")
+    sum(table(out[])) == obs_n
+      
+    ## Add lu classes 7 & 8 to predicte lu
     out[which(lu_original[]%in%lu_exclude[1])] <- 7
     out[which(lu_original[]%in%lu_exclude[2])] <- 8
     names(out) <- "landuse"
-    saveRDS(readAll(out), file = paste0(output_path, "/landuse", qs[k], "_", scens[j], "_", country_abbr,  ".rds"))
-    saveRDS(dmd, file = paste0(output_path, "/final_dmd", qs[k], "_", scens[j], "_", country_abbr,  ".rds"))
+    
+    saveRDS(readAll(out), file = paste0(lu_path, "/predlu_", quartiles[k], 
+                                        "_", ssps[j], "_", region,  ".rds"))
+    
+    saveRDS(dmd, file = paste0(lu_path, "/finaldmd_", quartiles[k], 
+                               "_", ssps[j], "_", region,  ".rds"))
   }
 }
 
-#test that landuse is fine
-country_abbr <- "aus"
-x <- list.files(output_path, pattern = country_abbr,  full.names = TRUE)
-xr <- x[grepl("landuseq", x)]
-xd <- x[grepl("final_dmd", x)]
-landuse <- readRDS(paste0("./RData/covariates_", country_abbr, ".rds"))
+stopCluster(cl)
+
+
+## Test that landuse is fine
+region <- "vn"
+x <- list.files(lu_path, pattern = region,  full.names = TRUE)
+xr <- x[grepl("predlu", x)]
+xd <- x[grepl("finaldmd", x)]
+landuse <- readRDS(paste0("./RData/covariates_", region, ".rds"))
 landuse <- landuse$landuse
 lu_tabled <- table(landuse[])
 rs <- list()
