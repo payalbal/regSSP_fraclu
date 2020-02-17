@@ -1,10 +1,10 @@
 #required packages
-require('matrixStats')
-require("pBrackets")
-require('RColorBrewer')
-require("rasterVis")
-require("cividis")
-require("sf")
+library('matrixStats')
+library("pBrackets")
+library('RColorBrewer')
+library("rasterVis")
+# library("cividis")
+library("sf")
 
 #----------------------------------------#
 ####---1. LOAD DATA AND GLOAL SETTINGS####
@@ -12,20 +12,34 @@ require("sf")
 
 #1.a File paths and other global parameters
 inch <- 0.393701 # one inch figure widths 183 89
-path_plots <- file.path(".", "output", "plots")
-in_path <- file.path(".", "RData")
-out_path <- file.path(".", "output")
-fig_path <- file.path(".", "figures")
-scenarios <- scens <- c(paste0("q1", c("_26", "_85")), paste0("q2", c("_26", "_85")), paste0("q3", c("_26", "_85")))
-treatments <- c("pres", paste0("ind_", scenarios), paste0("dir_", scenarios), paste0("inddir_",scenarios))
-ca <- c("aus", "til")
+
+regSSP_birds_data <- '/Volumes/discovery_data/regSSP_birds_data' 
+rdata_path <- file.path(regSSP_birds_data, "RData")
+output_path <- file.path(regSSP_birds_data, "output")
+
+fig_path <- file.path(regSSP_birds_data, "figures")
+if(!dir.exists(fig_path)){dir.create(fig_path)}
+
+
+ssps <- paste0("ssp", 1:3)
+rcps <- c("45", "60", "85")
+quartiles <- c("q2", "q1", "q3")
+scens <- sort(apply(expand.grid(quartiles, ssps), 1, paste0, collapse="_"))
+scens_rcps <- sort(apply(expand.grid(quartiles, rcps), 1, paste0, collapse="_"))
+treatments <- c("pres", paste0("ind_", scens), paste0("dir_", scens), paste0("aggr_", scens))
+
+# scenarios <- c(paste0("q1", c("_26", "_85")), paste0("q2", c("_26", "_85")), paste0("q3", c("_26", "_85")))
+# treatments <- c("pres", paste0("ind_", scenarios), paste0("dir_", scenarios), paste0("inddir_",scenarios))
+
+regions <- c("til", "aus")
 
 #1.b Get AUC values
 auc_list <- list()
 exclude_list <- list()
-j <- 2
-for(j in 1:2){
-  res <- readRDS(file.path(out_path, paste0("results_", ca[j], ".rds")))
+
+# for(j in 1:2){
+for(j in 1) {
+  res <- readRDS(file.path(output_path, paste0("results_", regions[j], ".rds")))
   auc_list[[j]] <- numeric()
   for(i in 1:length(res)){
     auc_list[[j]][i] <- res[[i]][[1]][,1][which(names(res[[i]][[1]][,1]) == "Test.AUC")]
@@ -35,9 +49,11 @@ for(j in 1:2){
 
 #1.c Get habitat change results, minus the ones where AUC were insufficient
 final_data <- list()
-i <- 2
-for(i in 1:2){
-  res <- readRDS(file.path(out_path, paste0("results_", ca[i], ".rds")))
+
+# for(i in 1:2){
+for(i in 1) {
+  res <- readRDS(file.path(output_path, paste0("results_", regions[i], ".rds")))
+  # resSK <- readRDS("/Volumes/discovery_data/birds_ccimpacts/output/results_til.rds")
   species <- sapply(res, FUN = function (x) {cbind(x[[4]])})
   res <- t(sapply(res, FUN = function (x) {cbind(x[[2]])}))
   res <- data.frame(species, res)
@@ -96,7 +112,8 @@ title(ylab = "increase", cex.lab = 1,
 
 
 #2.b Plot data points with means, by country (j) and treatment * RCP (i)
-for(j in 1:2){
+# for(j in 1:2){
+for(j in 1) {
   dp <- final_data[[j]][,which(grepl("q2", colnames(final_data[[j]])))]
   dp <- as.matrix(dp[,c(5, 1, 3, 6, 2, 4)])
   alpha <- 0.1
@@ -151,13 +168,13 @@ legend("bottom", bty= "n",
 #2.c Plot boxplots for AUC
 par(mar = c(1.5,8,2,6))
 f <- boxplot(auc_list[[1]][-exclude_list[[1]]], auc_list[[2]][-exclude_list[[2]]],
-        boxlty = 0,
-        staplecol = "black",
-        col = "grey",
-        boxwex = 0.8,
-        boxlty = 0, 
-        bty= "n",
-        axes = F
+             boxlty = 0,
+             staplecol = "black",
+             col = "grey",
+             boxwex = 0.8,
+             boxlty = 0, 
+             bty= "n",
+             axes = F
 )
 
 axis(2, tck = -0.025, at = c(0.7, 0.8, 0.9, 1), labels = c(0.7, 0.8, 0.9, 1))
@@ -172,9 +189,10 @@ title(ylab = "AUC", line = 2)
 #i get variable contributions
 contr_list <- list()
 contr_num <- list()
-for(j in 1:2){
-  preds <- c(readRDS(file.path(out_path, paste0("preds_", ca[j], ".rds"))), "landuse")
-  res <- readRDS(file.path(out_path, paste0("results_", ca[j], ".rds")))
+# for(j in 1:2){
+for(j in 1) {
+  preds <- c(readRDS(file.path(output_path, paste0("preds_", regions[j], ".rds"))), "landuse")
+  res <- readRDS(file.path(output_path, paste0("results_", regions[j], ".rds")))
   contr <- matrix(ncol = length(preds), nrow = length(res))
   colnames(contr) <- preds
   
@@ -190,8 +208,8 @@ for(j in 1:2){
 }
 
 #ii  Barplots
-j <- 1
-for(j in 1:2){
+# for(j in 1:2){
+for(j in 1) {
   means <- colMeans(contr_list[[j]], na.rm = T)
   ns <- apply(contr_list[[j]], 2, FUN = function (x) {round(length(which(!is.na(x)))/length(x) * 100)})
   means <- means/sum(means) * 100
@@ -217,6 +235,7 @@ dev.off()
 #---------------------#
 #####---3. Figure 3####
 #---------------------#
+
 countries <- c("Australia", "Vietnam")
 #3.a GTAP trajectoires
 all <- readRDS(file = file.path(".", "RData", paste0("results_gtap_qo_qfe", ".rds")))
@@ -251,7 +270,7 @@ cols <- c(scales::alpha("black", alpha = 0.05),
 
 #ii Open device, set layout, plot
 
-pdf(file.path(fig_path, "gtap.pdf"), height = 8 * inch, width = 8.9 * inch, pointsize = 12)
+pdf(file.path(fig_path, "gtap.pdf"), height = 11.5 * inch, width = 8.9 * inch, pointsize = 12)
 par(family = "Helvetica")
 comnames <- c("paddy rice", "wheat", "cereal grains", "vegetables, fruit, nuts", "oil seeds", "sugar cane, sugar beet", "plant-based fibres", "crops nec", "cattle, sheep, goats, horses", "forestry")[ncom]
 
@@ -324,32 +343,37 @@ dev.off()
 
 #3.b landuse change maps (Also for Supplementary FIgure 2)
 #i Global paramerters
-cols <- colorRampPalette(c("blue", "yellow", "red"))(101)
-breaks <- seq(0, 1, length.out = length(cols))
-country <- c("aus", "vnm")
+
+cols <- cividis(101, alpha = 1, begin = 0.2, end = 1, direction = 1)
+
+breaks <- seq(0, 1, length.out = length(cols)) #do we need the sqrt of break points here to?
+country <- c("vnm", 'aus')
 qs <- c("q1", "q2", "q3")
 rcps <- c("26", "85")
 
 lu_list <- list()
-for(j in 1:2){ #country
-  f0 <- readRDS(file.path(in_path, paste0("covariates_", country[j], ".rds")))$landuse
+# for(j in 1:2){ #country
+for(j in 1) {
+  f0 <- readRDS(file.path(rdata_path, paste0("covariates_", country[j], ".rds")))$landuse
   r_stack <- stack()
-  for(k in 1:3){ #quartile
-    for(i in 1:2){ #rcp
+  for(k in 1:length(qs)){ #quartile
+    for(i in 1:length(rcps)){ #rcp
       name <- paste0("landuse", qs[k], "_", rcps[i], "_", country[j])
       print(name)
-      f1 <- readRDS(file.path(out_path, paste0(name, ".rds")))
+      f1 <- readRDS(file.path(output_path, paste0(name, ".rds")))
       dif <- f0 - f1
       dif[which(dif[] != 0 & !is.na(dif[]))] <- 1
-      r <- aggregate(dif, fact = 5)
+      #r <- aggregate(dif, fact = 5)
+      r <- focal(dif, w = matrix(1, 3, 3), fun = function(x) {mean(x, na.rm = TRUE)})
       names(r) <- name
       r_stack <- stack(r_stack, r)
       par(mar = c(0,0,0,0), oma = c(0,0,0,0))
       png(file.path(fig_path, paste0(name, ".png")), bg = "transparent")
+      #plot(r, col = cols, legend = FALSE, axes=FALSE, box=FALSE)
       
-      print(levelplot(r, col.regions = cols, colorkey = NULL, margin = F, par.settings = list(
+      print(levelplot(sqrt(r), col.regions = cols, colorkey = NULL, margin = F, par.settings = list(
         axis.line = list(col = "transparent"),
-        strip.background = list(col = 'transparent'), 
+        strip.background = list(col = 'transparent'),
         strip.border = list(col = 'transparent')),
         scales = list(draw = FALSE),
         xlab = NULL,
@@ -362,21 +386,24 @@ for(j in 1:2){ #country
   lu_list[[j]] <- r_stack
 }
 
-#Plot legend image
-legend_image <- as.raster(matrix(rev(cols), ncol=1))
-pdf(file.path(fig_path, paste0("legend", ".pdf")), height = 4 * inch, width = 2 * inch, pointsize = 12)
-par(mar = c(0,0,0,1), oma = c(0,0,0,0))
-plot(c(0,2),c(0,1),type = 'n', axes = F,xlab = '', ylab = '')
-text(x=1.1, y = seq(0,1,l=5), labels = seq(0,1,l=5), cex = 0.8)
-rasterImage(legend_image, 0, 0, 0.5,1)
 
+#Plot legend image
+cols <- cividis(101, alpha = 1, begin = 0.2, end = 1, direction = 1)
+legend_image <- as.raster(matrix(cols, nrow=1))
+pdf(file.path(fig_path, paste0("legend", ".pdf")), height = 0.8 * inch, width = 5 * inch, pointsize = 12)
+par(mar = c(0,0,0,0), oma = c(0,0,0,0))
+plot(c(0,1),c(0,1), type = "n", axes = FALSE,xlab = '', ylab = '')
+text(x=sqrt(seq(0,1,l=5)), y = 0.25, labels = seq(0,1,l=5), cex = 0.8)
+rasterImage(legend_image, 0, 0.5, 1,1)
 dev.off()
+
 #3.c) Land use change per class table
 #i Global parameters
 rcps <- c("_26", "_85")
 countries <- c("vnm", "aus")
 mm <- matrix(NA, ncol = 6, nrow = 6)
 lu_classes <- c("Urban", "Cropland", "Herbaceous", "Shrubs", "Open forest", "Closed forest")
+
 #ii Open device
 pdf(file.path(fig_path, "landuse_table.pdf"), height = 6 * inch, width = 13 * inch, pointsize = 12)
 
@@ -429,145 +456,107 @@ dev.off()
 #---------------------#
 #####---4. Figure 4####
 #---------------------#
+
 #4.a Get species declining under didfernet scens/treatments (for results section)
-countries <- c("aus", "vnm")
-i <- 2
-mask <- readRDS(file.path(in_path, paste0("mask_", countries[i], ".rds")))
+countries <- c("vnm", "aus")
+reg_mask <- readRDS(file.path(rdata_path, paste0("mask_", countries[i], ".rds")))
 
 dat <- final_data[[i]]
-#iii get species with declines more than 90% under dir and more than 5% under indir effects of RCP8.5 (median predictions)
-#i more than 5% decline under indirect imapcts (median predictions)
-apply(dat[,-1], 2, FUN = function(x) {length(which(exp(x) < 0.95))})
 
-#ii more than 90% decline under direct impacts  (median predictions)
+#iii get species with declines more than 90% under dir and more than 5% under indir effects of RCP8.5 (median predictions)
+#i more than 10% decline under indirect imapcts (median predictions)
+apply(dat[,-1], 2, FUN = function(x) {length(which(exp(x) < 0.9))})
+
+#ii more than 95% decline under direct impacts  (median predictions)
 apply(dat[,-1], 2, FUN = function(x) {length(which(exp(x) < 0.05))})
 
 dir_specs <- as.character(dat[,1])[which(exp(dat$dir_q2_85) < 0.05)]
-ind_specs <- as.character(dat[,1])[which(exp(dat$ind_q2_85) < 0.95)]
+ind_specs <- as.character(dat[,1])[which(exp(dat$ind_q2_85) < 0.9)]
 
 dir_inds <- which(dat$species%in%dir_specs)
 ind_inds <- which(dat$species%in%ind_specs)
 
-res <- readRDS(file.path(out_path, paste0("results_", ca[i], ".rds")))
+res <- readRDS(file.path(output_path, paste0("results_", regions[i], ".rds")))
 species <- sapply(res, FUN = function (x) {cbind(x[[4]])})
 id <- which(species%in%ind_specs)[6]
-res[[id]][[4]]
-t <- mask
-t <- mask - 1
-plot(t)
-t[res[[id]][[5]]] <- 1
-plot(t)
-print(species[id])
 
-dir_specs <- as.character(dat[,1])[which(exp(dat$inddir_q2_85) <= 0.5)]
-172/nrow(dat)
 
 #4.b Make map of habitat declines across all species
+
 #i Prepare data for plotting
 final_maps <- list()
 for(i in 1:2){
-  country <- ca[i]
-  if(country == "til") country <- "vnm"
-  mask <- readRDS(file.path(in_path, paste0("mask_", country, ".rds")))
-  
-  final_maps[[i]] <- stack(mask, mask)
+  country <- regions[i]
+  if(country == "til") country <- "vn"
+  reg_mask <- readRDS(file.path(rdata_path, paste0("mask_", country, ".rds")))
+  final_maps[[i]] <- stack(reg_mask, reg_mask)
   names(final_maps[[i]]) <- c("indirect", "direct")
-  res <- readRDS(file.path(out_path, paste0("results_", ca[i], ".rds")))
+  res <- readRDS(file.path(output_path, paste0("results_", regions[i], ".rds")))
   for(j in 1:length(res)){
     if(!res[[j]][[4]]%in%final_data[[i]][,1]) next
     for(k in 5:6){
+      # if(length(res[[j]][[k]]) != 0) final_maps[[i]][[k-4]][res[[j]][[k]]] <- final_maps[[i]][[k-4]][res[[j]][[k]]] + 1
       if(length(res[[j]][[k]]) != 0) final_maps[[i]][[k-4]][res[[j]][[k]]] <- final_maps[[i]][[k-4]][res[[j]][[k]]] + 1
     }
     print(j)
   }
   final_maps[[i]] <- final_maps[[i]]/nrow(final_data[[i]])
-  final_maps[[i]] <- aggregate(final_maps[[i]], fac = 5)
+  for(k in 1:nlayers(final_maps[[i]])){
+    print(paste0("Resampling output map ", k))
+    final_maps[[i]][[k]] <- focal(final_maps[[i]][[k]], w = matrix(1, 3, 3), fun = function(x) {mean(x, na.rm = TRUE)})
+  }
 }
 
 #ii Plot individual maps
-cols <- colorRampPalette(c("royalblue2", "yellow2", "red2"))(101)
-tm <- c('ind', '', "dir")
+cols <- cividis(101, alpha = 1, begin = 0.2, end = 1, direction = 1)
+tm <- c('ind', "dir")
 countries <- c("Australia", "Vietnam")
 dev.off()
-
+maximum <- sqrt(max(c(stack(final_maps[[1]])[]), stack(final_maps[[2]])[], na.rm = TRUE))
+breaks <- seq(0, 0.5, length.out = 20)
 for(i in 1:2){
-  f <- final_maps[[i]] * 100
+  f <- final_maps[[i]]
   for(j in c(1,2)){
-    s <- hist(f[[j]])$breaks
-    g <- seq(s[1], tail(s,1), length.out = 20)
-    cols <- colorRampPalette(c("royalblue2", "yellow2", "red2"))(50)
-    png(file.path(fig_path, paste0("habitat_change_", tm[j], "_", ca[i],  ".png")) , bg = "transparent")
-    print(levelplot(f[[j]], col.regions = cols, margin = F, colorkey= NULL, par.settings = list(
+    png(file.path(fig_path, paste0("habitat_change_", tm[j], "_", regions[i],  ".png")) , bg = "transparent")
+    print(levelplot(sqrt(f[[j]]), col.regions = cols, margin = F, colorkey= NULL, par.settings = list(
       axis.line = list(col = "transparent"),
       strip.background = list(col = 'transparent'), 
       strip.border = list(col = 'transparent')),
       scales = list(draw = FALSE),
       xlab = NULL,
       ylab = NULL,
-      at = g
+      at = breaks
     ))
     dev.off()
   }
 }
-
-#ii Plot legend for manual insertion in final figure
-legend_image <- as.raster(matrix(rev(cols), ncol=1))
-pdf(file.path(fig_path, paste0("legend_habitatmaps", ".pdf")), height = 4 * inch, width = 2 * inch, pointsize = 12)
-par(mar = c(0,0,0,1), oma = c(0,0,0,0))
-plot(c(0,2),c(0,1),type = 'n', axes = F,xlab = '', ylab = '')
-text(x=1.1, y = seq(0,1,l=5), labels = seq(0,1,l=5), cex = 0.8)
-rasterImage(legend_image, 0, 0, 0.5,1)
 dev.off()
 
-#Land-use Effect sizes
-country_abbr <- "vnm"
-lu_classes <- c("Urban", "Cropland", "Herbaceous vegetation", "Shrubs", "Open forest", "Closed forest", "Herbaceous wetlands, moss and lichen", "Bare soil and sparse vegetation")
-load(file.path(out_path, paste0("landuse_preds", country_abbr, ".RData")))
-rm(covariates,ef, obs, pa)
-
-gc()
-pdf(file.path(fig_path, paste0("lu_effects_", country_abbr, ".pdf")), height = 18.3 * inch, width = 18.3 * inch, pointsize = 12)
-par(mfrow = c(3, 2), mar = par("mar") - c(1, 0.5 , 2, 1))
-i <- 1
-for(i in 1:(length(lu_classes)-2)){
-  sum_mod <- summary(glm.models@models[[i]])$coefficients[-1,]
-  suit_preds <- or_names
-  cov_names <- paste0("ef_", sprintf("%02d", 1:14))
-  xs <- na.omit(match(rownames(sum_mod), cov_names))
-  ys <- as.numeric(sum_mod[,1])
-  lower <- ys - 1.96 * sum_mod[,2]
-  upper <- ys + 1.96 * sum_mod[,2]
-  plot(1:14, type = "n", ylim = c(floor(min(lower)), ceiling(max(upper))), xaxt='n', ann = FALSE)
-  abline(h = 0, col =alpha("black", alpha = 0.5), lwd = 2)
-  arrows(x0 = xs, lower, x1 = xs, upper, length = 0, angle = 90, 
-         code = 3, col = alpha("black", alpha = 0.5), lwd = 2)
-  points(xs, sum_mod[,1], pch = 16)
-  axis(1, c(0,xs), labels = FALSE)
-  text(x = c(0,xs), labels = c("", suit_preds[xs]), srt = 45, pos = 1, xpd = TRUE, par("usr")[3] - (par("usr")[4] - par("usr")[3])/10)
-  title(ylab="Effect size", line = 2.1)
-  title(main=lu_classes[i], line = 1, cex = 0.8)
-}
+#iii. Legend
+cols <- cividis(101, alpha = 1, begin = 0.2, end = 1, direction = 1)
+legend_image <- as.raster(matrix(cols, nrow=1))
+pdf(file.path(fig_path, paste0("legend_habmap", ".pdf")), height = 0.8 * inch, width = 5 * inch, pointsize = 12)
+par(mar = c(0,0,0,0), oma = c(0,0,0,0))
+plot(c(0,1),c(0,1), type = "n", axes = FALSE,xlab = '', ylab = '')
+text(x=sqrt(seq(0,1,l=5)), y = 0.25, labels = seq(0,1,l=5), cex = 0.8)
+rasterImage(legend_image, 0, 0.5, 1,1)
 dev.off()
 
-#--------------------------------#
-#####---5. Supplementary Plots####
-#--------------------------------#
-#5.a Global parameters
+
+#----------------------------------#
+#####---5. Supplementary FIgures####
+#----------------------------------#
+
+#5.a Supplementary Figure 1
 qs <- c("q1", "q3")
-x <- c(1:3, 5:7)
 lims <- c(log(0.03), log(8))
-
-#2.a Some parameters
-#i GLobal plotting pars
 x <- c(1:3, 5:7)
-lims <- c(log(0.1), log(8))
 padj <- - 0.05
 wth <- 0.35
 jit <- 0.3
 tf <- 0.8
 countries <- c("Australia", "Vietnam")
 dev.off()
-#5.b Supplementary Figure 1
 pdf(file.path(fig_path, "sup_habitat_change.pdf"), height = 18.3 * inch, width = 18.3 * inch, pointsize = 12)
 
 layout(matrix(c(1, 2, 8, 3,
@@ -646,7 +635,7 @@ legend("bottom", bty= "n",
 )
 dev.off()
 
-#5.b Supplementary FIgure 3 (GTAP output maps for 2071)
+#5.b Supplementary FIgure 2 (GTAP output maps for 2071)
 s <- read_sf("~/Downloads/TM_WORLD_BORDERS_SIMPL-0.3/", layer = "TM_WORLD_BORDERS_SIMPL-0.3")
 t <- read.csv("~/OneDrive - The University of Melbourne/PhD - Large Files/PhD - Raw Data/demand calcs/prod and output/qfe_land_all_4oC_2071.csv")
 r <- read.csv("~/OneDrive - The University of Melbourne/PhD - Large Files/PhD - Raw Data/demand calcs/prod and output/qo_all_4oC_2071.csv")
@@ -679,4 +668,33 @@ borders$QO26[finalr] <- as.numeric(r[which(r[,1] == croptype), rinds])
 
 pdf(file.path(fig_path, "gtap_maps.pdf"))
 plot(borders[c("QO26", "QFE26", "QO85", "QFE85")], key.pos = 1, key.length = 0.5, key.width = 0.2)
+dev.off()
+
+#5.c Supplementary Figure 3
+country_abbr <- "vnm" #or aus
+lu_classes <- c("Urban", "Cropland", "Herbaceous vegetation", "Shrubs", "Open forest", "Closed forest", "Herbaceous wetlands, moss and lichen", "Bare soil and sparse vegetation")
+load(file.path(output_path, paste0("landuse_preds", country_abbr, ".RData")))
+rm(covariates,ef, obs, pa)
+
+pdf(file.path(fig_path, paste0("lu_effects_", country_abbr, ".pdf")), height = 18.3 * inch, width = 18.3 * inch, pointsize = 12)
+par(mfrow = c(3, 2), mar = par("mar") - c(1, 0.5 , 2, 1))
+i <- 1
+for(i in 1:(length(lu_classes)-2)){
+  sum_mod <- summary(glm.models@models[[i]])$coefficients[-1,]
+  suit_preds <- or_names
+  cov_names <- paste0("ef_", sprintf("%02d", 1:14))
+  xs <- na.omit(match(rownames(sum_mod), cov_names))
+  ys <- as.numeric(sum_mod[,1])
+  lower <- ys - 1.96 * sum_mod[,2]
+  upper <- ys + 1.96 * sum_mod[,2]
+  plot(1:14, type = "n", ylim = c(floor(min(lower)), ceiling(max(upper))), xaxt='n', ann = FALSE)
+  abline(h = 0, col =alpha("black", alpha = 0.5), lwd = 2)
+  arrows(x0 = xs, lower, x1 = xs, upper, length = 0, angle = 90, 
+         code = 3, col = alpha("black", alpha = 0.5), lwd = 2)
+  points(xs, sum_mod[,1], pch = 16)
+  axis(1, c(0,xs), labels = FALSE)
+  text(x = c(0,xs), labels = c("", suit_preds[xs]), srt = 45, pos = 1, xpd = TRUE, par("usr")[3] - (par("usr")[4] - par("usr")[3])/10)
+  title(ylab="Effect size", line = 2.1)
+  title(main=lu_classes[i], line = 1, cex = 0.8)
+}
 dev.off()

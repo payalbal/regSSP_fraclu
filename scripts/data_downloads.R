@@ -89,8 +89,7 @@ file.rename(paste0("./data/", temp$Name), sub(file_path_sans_ext(basename(temp$N
 file.remove("data/soil.zip")
 
 ## Roads
-## Source: 
-https://sedac.ciesin.columbia.edu/downloads/data/groads/groads-global-roads-open-access-v1/groads-v1-global-gdb.zip
+## Source: https://sedac.ciesin.columbia.edu/downloads/data/groads/groads-global-roads-open-access-v1/groads-v1-global-gdb.zip
 
 
 area_sdm <- c("til29", "vnm")

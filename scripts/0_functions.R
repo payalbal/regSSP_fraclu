@@ -1,6 +1,6 @@
 ## Functions
 
-## Download bioclim data from url
+## download bioclim data from url
 download_from_url <- function (urls, zipdst, rasterdst) {
   
   for (url in urls){
@@ -16,9 +16,10 @@ download_from_url <- function (urls, zipdst, rasterdst) {
 }
 
 
-## Update mask based on NAs in raster stack (to obtain min set NAs)
-## Add to function to include masking raster stack based on updated mask
+## Author: Payal Bal
 align.maskNA <- function(raster_stack, region_mask) {
+  ## update mask based on NAs in covariate stack
+  
   print(paste0("# NAs in input mask: ", summary(region_mask)[6]))
   
   for (i in names(raster_stack)){
@@ -30,9 +31,11 @@ align.maskNA <- function(raster_stack, region_mask) {
       values(region_mask)[cellFromXY(region_mask, xys)] <- NA
     }
   }
-  print(paste0("# NAs in output mask: ", summary(new_mask)[6]))
   
-  return(region_mask)
+  new_mask <- region_mask
+  
+  print(paste0("# NAs in output mask: ", summary(new_mask)[6]))
+  return(new_mask)
 }
 
 
@@ -91,17 +94,23 @@ merge_wctiles <- function(biotiles){
 }
 
 ## Reduce predictor set by dropping predictors with highest corrleation with another predictor - by Simon Kapitza
-reduce_predset <- function(cors = matrix(), thresh = 0.7) {
+## Same function used in the landuse model
+correlations <- function(covs, thresh = 0.7) {
+  subs_cor <- sample(1:nrow(covs), size = 15000) # subset covs to calculate correlations
+  cors <- cor(covs[subs_cor, ], method = "spearman")
   while (min(abs(cors[abs(cors) >= thresh])) != 1){
     values <- cors[which(abs(cors) > thresh)]
+    # corellated <- which(abs(cors) > thresh)
     values[values ==1] <- NA
+    # corellated[which(values== max(values, na.rm = T))]
     rows_highest_cor <- which(cors == max(values, na.rm = T), arr.ind = T)[,1]
     cors_cur <- abs(cors[rows_highest_cor,])
     '%ni%' <- Negate('%in%')
     m1 <- max(cors_cur[1,][cors_cur[1,]%ni%c(max(values, na.rm = T),1)])
     m2 <- max(cors_cur[2,][cors_cur[2,]%ni%c(max(values, na.rm = T),1)])
     out <- ifelse(m1 > m2, 1, 2)
-    cors <- cors[-which(colnames(cors) == names(rows_highest_cor)[out]), -which(colnames(cors) == names(rows_highest_cor)[out])]
+    cors <- cors[-which(colnames(cors) == names(rows_highest_cor)[out]), 
+                 -which(colnames(cors) == names(rows_highest_cor)[out])]
     nrow(cors)
   }
   return(cors)
@@ -114,9 +123,86 @@ writeToDisk <- function(covariates, folder){
 }
 
 
+## FOR PPMS
+## Author: Nick Goulding
+nearestLand <- function (points, raster, max_distance) {
+  # get nearest non_na cells (within a maximum distance) to a set of points
+  # points can be anything extract accepts as the y argument
+  # max_distance is in the map units if raster is projected
+  # or metres otherwise
+  
+  # function to find nearest of a set of neighbours or return NA
+  nearest <- function (lis, raster) {
+    neighbours <- matrix(lis[[1]], ncol = 2)
+    point <- lis[[2]]
+    # neighbours is a two column matrix giving cell numbers and values
+    land <- !is.na(neighbours[, 2])
+    if (!any(land)) {
+      # if there is no land, give up and return NA
+      return (c(NA, NA))
+    } else{
+      # otherwise get the land cell coordinates
+      coords <- xyFromCell(raster, neighbours[land, 1])
+      
+      if (nrow(coords) == 1) {
+        # if there's only one, return it
+        return (coords[1, ])
+      }
+      
+      # otherwise calculate distances
+      dists <- sqrt((coords[, 1] - point[1]) ^ 2 +
+                      (coords[, 2] - point[2]) ^ 2)
+      
+      # and return the coordinates of the closest
+      return (coords[which.min(dists), ])
+    }
+  }
+  
+  # extract cell values within max_distance of the points
+  neighbour_list <- extract(raster, points,
+                            buffer = max_distance,
+                            cellnumbers = TRUE)
+  
+  # add the original point in there too
+  neighbour_list <- lapply(1:nrow(points),
+                           function(i) {
+                             list(neighbours = neighbour_list[[i]],
+                                  point = as.numeric(points[i, ]))
+                           })
+  
+  return (t(sapply(neighbour_list, nearest, raster)))
+}
+
+
+## Author: Payal Bal
+catch_errors <- function(i, ppm_models, species_names, errorfile) {
+  # catch errors in model outputs
+  # -> list of outputs for models without errors, 
+  # -> list of outputs for models with errors, 
+  # -> text file with list of models with errors (species indices and species names)
+  
+  cat('Checking model for ', species_names[i],'for errors\n')
+  for(i in 1:length(ppm_models)){
+    if(!class(ppm_models[[i]])[1] == "try-error") {
+      model_list[[n]] <- ppm_models[[i]]
+      n <- n+1
+    }else{
+      print(paste0("Model ",i, " for '", spp[i], "' has errors"))
+      cat(paste(i, ",", spp[i], "\n"),
+          file = errorfile, append = T)
+      error_list[[m]] <- ppm_models[[i]]
+      m <- m+1
+    }
+  }
+}
+
+
+
+
+
+## EXTRAS ----
 ## Calculate area-corrected richness for each raster in the stack
 ## NOTES Area-corrected richness is the ratio of value in a pixel vs the sum of values across the area for a species. It gives a relative value that can be compared across species (unlike the relative likelihoods). So we can sum this for species. This is still an index of area corrected richness and not a measure of the richness directly. 
-
 area_corrted_richnes <- function (inputstack){
   output <- stack()
   if(class(inputstack) != "RasterStack"){

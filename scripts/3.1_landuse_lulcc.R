@@ -1,7 +1,17 @@
-## Landuse model
-## Referennce docs:
-## Moulds et al. 2015
-## lulcc_workflow (Fig )
+## Landuse model - lulcc package, Moulds et al. 2015
+## Using USGS - MODIS data: https://archive.usgs.gov/archive/sites/landcover.usgs.gov/global_climatology.html 
+## 
+## Outputs: 
+## 1. lucovs - raster stack - covariates for lulcc model [2 files for vn, aus]
+## 2. lulcc_dat - workspace - covariates and variables [2 files for vn, aus]
+## 3. predlu - raster layer - predicted land use 
+##      [18 files: vn, aus for 0.25, 0.5 and 0.75 quartiles 
+##      under ssp 1, 2, and 3 + 2 text log files]
+## 4. finaldmd - matrix - predicted demand - 6 years x 6 lu classes 
+##      [18 files: vn, aus for 0.25, 0.5 and 0.75 quartiles 
+##      under ssp 1, 2, and 3]
+##
+## TOTAL FILES CREATED IN OUTPOT FOLDER (output): 46
 
 
 ## Set up work environment ####
@@ -27,9 +37,8 @@ regSSP_birds_data <- '/Volumes/discovery_data/regSSP_birds_data'
   ## change as per server: boab = "./data"
 rdata_path <- file.path(regSSP_birds_data, "RData") 
   ## change as per server: boab - "./RData"
-lu_path <- file.path(regSSP_birds_data, "lu_output") 
-  ## change as per server: boab - "./lu_output"
-if(!dir.exists(lu_path)){dir.create(lu_path)}
+output_path <- file.path(regSSP_birds_data, "output") 
+  ## change as per server: boab - "./output"
 files <- list.files(rdata_path, full.names = T)
 
 
@@ -93,10 +102,7 @@ for(region in regions){
   print(paste0("# data points in covariates without NAs: ", nrow(cov_df)))
   
   cov_df <- scale(cov_df) # scale values for comparison
-  subs <- sample(1:nrow(cov_df), 15000) # sample values
-  cors <- cor(cov_df[subs,]) # find correlation in covariates
-  preds <- rownames(reduce_predset(cors))
-  # reduce_predset: SK's function to remove correlated (spearmens > 0.7) covariates 
+  preds <- colnames(correlations(cov_df)) # see functions 
   covariates <- covariates[[which(names(covariates)%in%preds)]]
   cov_names <- names(covariates)
   bio_inds <- which(grepl(cov_names, pattern = "bio"))
@@ -173,24 +179,26 @@ for(region in regions){
     cov_scal,
     ef,
     glm.models,
-    file = paste0(lu_path, "/lulcc_dat_", region, ".RData")
+    file = paste0(output_path, "/lulcc_dat_", region, ".RData")
   )
-  saveRDS(readAll(covariates), file = paste0(lu_path, "/lucovs_", region, ".rds"))
+  saveRDS(readAll(covariates), file = paste0(output_path, "/lucovs_", region, ".rds"))
   print(paste0("lulcc data for ", region, " saved as: ", 
-               paste0(lu_path, "/lulcc_dat_", region, ".RData")))
+               paste0(output_path, "/lulcc_dat_", region, ".RData")))
   print(paste0("lulcc covariates for ", region, " saved as: ", 
-               paste0(lu_path, "/lucovs_", region, ".rds")))
+               paste0(output_path, "/lucovs_", region, ".rds")))
   print("-----------------------------------")
   
   rm(list=setdiff(ls(), c("regSSP_birds_data",
                           "rdata_path",
-                          "lu_path",
+                          "output_path",
                           "files",
                           "regions")))
   gc()
 }
  rm(list = ls())
 
+ ## ***** Rerun scipt up till here for all regions ***** ####
+ 
 
 ## ***** restart here ***** ####
  rm(list = ls())
@@ -198,8 +206,8 @@ for(region in regions){
  # system("ps")
  # system("pkill -f R")
  
- setwd("./regtrade/")
- x <- c('sp', 'raster', 'glmnet', 'lulcc', 'doParallel')
+ # setwd("./regtrade/")
+ x <- c('sp', 'raster', 'glmnet', 'lulcc', 'doParallel', 'foreach')
  lapply(x, require, character.only = TRUE)
  
 
@@ -208,8 +216,8 @@ regSSP_birds_data <- '/Volumes/discovery_data/regSSP_birds_data'
   ## change as per server: boab = "./data"
 rdata_path <- file.path(regSSP_birds_data, "RData") 
   ## change as per server: boab - "./RData"
-lu_path <- file.path(regSSP_birds_data, "lu_output") 
-  ## change as per server: boab - "./lu_output"
+output_path <- file.path(regSSP_birds_data, "output") 
+  ## change as per server: boab - "./output"
 files <- list.files(rdata_path, full.names = T)
 regions <- c('vn', 'aus')
 
@@ -221,18 +229,32 @@ region <- 'aus'
 
 ## Load workspace for region
 source(file.path(".", "R", "1_functions.R"))
-load(paste0(lu_path,"/lulcc_dat_", region, ".RData"))
-covariates <- readRDS(paste0(lu_path, "/lucovs_", region, ".rds"))
+load(paste0(output_path,"/lulcc_dat_", region, ".RData"))
+covariates <- readRDS(paste0(output_path, "/lucovs_", region, ".rds"))
 
-## Define transition matrix & clues parameters ####
+## Define clues parameters ####
 w <- matrix(1, 6, 6) 
 w[1,2:6] <- 0 # because lu_1 'urban' cannot change to any other land use
-elas = c(1, 0.6, 0.6, 0.6, 0.7, 0.9) # will need sesitivity analysis
-clues.parms <- list(jitter.f=0.002,
-                    scale.f=0.000001,
-                    max.iter=10000, # changed from 5000,
-                    max.diff= 500,
-                    ave.diff= 500)
+elas = c(1, 0.6, 0.7, 0.7, 0.7, 0.9)
+  # for vn: elas = c(1, 0.6, 0.6, 0.6, 0.7, 0.9)
+clues.parms <- list(jitter.f = 0.002,
+                    scale.f = 0.000001,
+                    max.iter = 5000,
+                    max.diff = 500,
+                    ave.diff = 500)
+
+# ## Use something like this for later...
+# elas = c(1, 0.6, 0.5, 0.5, 0.6, 0.9)
+# clues.parms <- list(jitter.f=0.002,
+#                     scale.f=0.000001,
+#                     max.iter=5000,
+#                     max.diff= 200,
+#                     ave.diff= 200)
+
+## Notes: 
+## Model does not converge WITH warning at max.iter + warning = 5000/10000/20000
+## Model does not converge WITHOUT warning at max.iter = 20000, elas = c(1, 0.6, 0.7, 0.7, 0.7, 0.9)
+## 
 
 ## Specify scenarios ####
 ssps <- paste0("ssp", 1:3)
@@ -247,12 +269,13 @@ timesteps <- c(11, 21, 31, 41, 51)
 
 ## Initiate log file
 obs_n <- length(which(!is.na(obs@layers[[1]][]))) # non-NA values in observed lu data
-logfile <- file.path(lu_path, paste0("landuse_", region, "_log.txt"))
+logfile <- file.path(output_path, paste0("landuse_", region, "_log.txt"))
 writeLines(c(""), logfile)
 
-## Prepare final demand trajectories (icnluding grass/shrub and forest estimations)
+## Prepare final demand trajectories (including grass/shrub and forest estimations)
 cl <- makeCluster(3, outfile="")
 registerDoParallel(cl)
+clusterCall(cl, function() library('sp', 'ratser', 'lulcc'))
 
 for (j in 1: length(ssps)){
   
@@ -260,17 +283,19 @@ for (j in 1: length(ssps)){
   obs2 <- obs
   
   ## Load land-use demand for ssp-rcp scenario
-  dmd <- as.matrix(readRDS(file.path(lu_path, paste0("landdemand_", 
+  dmd <- as.matrix(readRDS(file.path(output_path, paste0("landdemand_", 
                                                      region, "_", ssps[j], 
                                                      ".rds"))))
 
-  foreach(k = 1:length(quartiles), .packages = c("lulcc")) %dopar% {
+  foreach(k = 1:length(quartiles), .packages = c("sp", "ratser", "lulcc")) %dopar% {
     
     msg1 = paste0("Preparing quantile for region ", 
                region, " ... Quartile: ", quartiles[k], " | Scenario: ", 
                ssps[j],  "-rcp", rcps[j], "\n")
     msg2 = paste0(Sys.time(), "\n")
     cat(paste(msg1, msg2, sep = '\n'),  file = logfile, append = T)
+    print(msg1)
+    print(Sys.time())
     
     ## Load dynamic covariates (i.e. future bioclim layers) for ssp-rcp scenario and quartile
     if(region == 'vn') {
@@ -318,6 +343,8 @@ for (j in 1: length(ssps)){
                  ssps[j],  "-rcp", rcps[j], " | Timestep: ", t, "\n")
       msg2 = paste0(Sys.time(), "\n")
       cat(paste(msg1, msg2, sep = '\n'),  file = logfile, append = T)
+      print(msg1)
+      print(Sys.time())
       
       ## Prepare timestep specific data stack to predict lu suitability
       covariates_final <- stack(cov_stat, cov_dyn + 
@@ -370,6 +397,9 @@ for (j in 1: length(ssps)){
       ## Reassign original predictor names so they can be found by predict function
       names(covariates_final)[bio_inds] <- names_dyn_cov
       ef <- ExpVarRasterList(readAll(covariates_final), pattern = "ef")
+        ## gives warning: 
+        # Warning message:
+        #   In fun(libname, pkgname) : couldn't connect to display ":0"
       
       ## Sync NAs otherwise clues won't converge...
       inds <- unique(c(which(is.na(obs2@layers[[1]][])), 
@@ -387,6 +417,8 @@ for (j in 1: length(ssps)){
                  ssps[j],  "-rcp", rcps[j], " | Timestep: ", t, "\n")
       msg2 = paste0(Sys.time(), "\n")
       cat(paste(msg1, msg2, sep = '\n'),  file = logfile, append = T)
+      print(msg1)
+      print(Sys.time())
       
       ## Specify clues model
       clues.model <- CluesModel(obs = obs2, 
@@ -403,14 +435,9 @@ for (j in 1: length(ssps)){
       st <- system.time(ordered_out <- allocate(clues.model))
       cat(paste(st, "\n"), file = logfile, append = T)
       
-      ## LU model not converging....
-      ## when run for j = x, k = x, t = x
-      ## Warning implies that the model did not converge. To check compare 
-      ## table(ordered_out@obs[])
-      ## with dmd in t+1
-      ## when run in parallel, error: error in unserialize(socklist[[n]]) : error reading from connection
-      ## seems to be a problem in parallelisation, run in serial or ask for more memory on boab/run on MRC
-      
+      ## Compare input and output
+      dmd
+      summary(ordered_out)$output
       
       # ## Allocate changes in line with demand, suitability model, and allocation order (see Methods)
       # ## Make model object
@@ -444,20 +471,22 @@ for (j in 1: length(ssps)){
     out[which(lu_original[]%in%lu_exclude[2])] <- 8
     names(out) <- "landuse"
     
-    saveRDS(readAll(out), file = paste0(lu_path, "/predlu_", quartiles[k], 
+    saveRDS(readAll(out), file = paste0(output_path, "/predlu_", quartiles[k], 
                                         "_", ssps[j], "_", region,  ".rds"))
     
-    saveRDS(dmd, file = paste0(lu_path, "/finaldmd_", quartiles[k], 
+    saveRDS(dmd, file = paste0(output_path, "/finaldmd_", quartiles[k], 
                                "_", ssps[j], "_", region,  ".rds"))
   }
 }
 
 stopCluster(cl)
 
+## ***** Rerun scipt up till here for all regions ***** ####
 
-## Test that landuse is fine
+
+## Check output
 region <- "vn"
-x <- list.files(lu_path, pattern = region,  full.names = TRUE)
+x <- list.files(output_path, pattern = region,  full.names = TRUE)
 xr <- x[grepl("predlu", x)]
 xd <- x[grepl("finaldmd", x)]
 landuse <- readRDS(paste0("./RData/covariates_", region, ".rds"))
@@ -479,3 +508,10 @@ for(j in 1:6){
 }
 plot(obs2@layers[[1]])
 
+
+## LU model not converging....
+## Warning implies that the model did not converge. To check compare 
+## table(ordered_out@obs[])
+## with dmd in t+1
+## when run in parallel, error: error in unserialize(socklist[[n]]) : error reading from connection
+## seems to be a problem in parallelisation, run in serial or ask for more memory on boab/run on MRC
