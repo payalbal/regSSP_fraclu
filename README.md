@@ -1,2 +1,2 @@
-####forked from kapitzas/birds_climatechange
-R project renamed from birds_ccimpacts.Rproj to regtrade_birds.Rproj
+regional SSP analysis using fractional landuse model adapted from https://github.com/kapitzas/ch2_landusemodel
+
