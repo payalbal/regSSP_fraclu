@@ -2,22 +2,27 @@
 ## Ref: https://github.com/kapitzas/ch2_landusemodel
 
 ## Set working environment ####
-
 # setwd("./regSSP_fraclu/")
 
 rm(list = ls())
+gc()
+# system("ps")
+# system("pkill -f R")
+
 x <- c("sp", "raster", "extraDistr")
 lapply(x, require, character.only = TRUE)
+
+regSSP_data <- '/Volumes/discovery_data/regSSP_data' # on server - "../regSSP_data"
+rdata_path <- file.path(regSSP_data, "RData") # on server - "./RData"
+output_path <- file.path(regSSP_data, "output") # on server - "./output"
+files <- list.files(rdata_path, full.names = TRUE)
+
 source(file.path(".", "scripts", "0_functions_sklu.R"))
 source(file.path(".", "scripts", "0_functions.R"))
 
-regSSP_birds_data <- '/Volumes/discovery_data/regSSP_birds_data' # on server - "./data"
-rdata_path <- file.path(regSSP_birds_data, "RData") # on server - "./RData"
-output_path <- file.path(regSSP_birds_data, "output") # on server - "./output"
-files <- list.files(rdata_path, full.names = TRUE)
-
 
 ## Specify region ####
+regions <- c('vn', 'aus')
 region = 'vn'
 reg_mask <- readRDS(file.path(rdata_path, paste0("mask_", region, ".rds")))
 

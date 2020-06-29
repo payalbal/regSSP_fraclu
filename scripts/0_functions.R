@@ -1,6 +1,7 @@
 ## Functions
 
-## download bioclim data from url
+## Author: Chris Ware
+## Download bioclim data from url
 download_from_url <- function (urls, zipdst, rasterdst) {
   
   for (url in urls){
@@ -17,9 +18,8 @@ download_from_url <- function (urls, zipdst, rasterdst) {
 
 
 ## Author: Payal Bal
+## update mask based on NAs in covariate stack
 align.maskNA <- function(raster_stack, region_mask) {
-  ## update mask based on NAs in covariate stack
-  
   print(paste0("# NAs in input mask: ", summary(region_mask)[6]))
   
   for (i in names(raster_stack)){
@@ -31,15 +31,15 @@ align.maskNA <- function(raster_stack, region_mask) {
       values(region_mask)[cellFromXY(region_mask, xys)] <- NA
     }
   }
-  
   new_mask <- region_mask
   
   print(paste0("# NAs in output mask: ", summary(new_mask)[6]))
-  return(new_mask)
+  return(region_mask)
 }
 
 
-## Download current bioclim data by specified tiles - by Simon Kapitza
+## Author: Simon Kapitza
+## Download current bioclim data by specified tiles
 get_wctiles <- function(tiles, var, path, ...){
   
   if(missing(path)){
@@ -63,7 +63,8 @@ get_wctiles <- function(tiles, var, path, ...){
   biotiles
 }
 
-## Merge downloaded bioclim tiles into single raster layer - by Simon Kapitza
+## Author: Simon Kapitza
+## Merge downloaded bioclim tiles into single raster layer
 merge_wctiles <- function(biotiles){
   
   if(!is.list(biotiles)) stop("Please provide list with stacks for each tile")
@@ -93,7 +94,8 @@ merge_wctiles <- function(biotiles){
   out
 }
 
-## Reduce predictor set by dropping predictors with highest corrleation with another predictor - by Simon Kapitza
+## Author: Simon Kapitza
+## Reduce predictor set by dropping predictors with highest corrleation with another predictor
 ## Same function used in the landuse model
 correlations <- function(covs, thresh = 0.7) {
   subs_cor <- sample(1:nrow(covs), size = 15000) # subset covs to calculate correlations
@@ -116,15 +118,59 @@ correlations <- function(covs, thresh = 0.7) {
   return(cors)
 }
 
-## Write raster layers from objects to disk, so maxent can pull them from there rather than having them all loaded into memory - by Simon Kapitza
+## Author: Simon Kapitza
+## Write raster layers from objects to disk, so maxent can pull them from there rather than having them all loaded into memory
 writeToDisk <- function(covariates, folder){
   dir.create(folder, recursive = T)
   writeRaster(covariates, filename = file.path(folder, paste0(names(covariates), ".tif")), bylayer = T, driver = "GTiff", overwrite = T)
 }
 
 
-## FOR PPMS
+
+## EXTRAS -----
+
+## Author: Payal Bal
+catch_errors <- function(i, ppm_models, species_names, errorfile) {
+  # catch errors in model outputs
+  # -> list of outputs for models without errors, 
+  # -> list of outputs for models with errors, 
+  # -> text file with list of models with errors (species indices and species names)
+  
+  cat('Checking model for ', species_names[i],'for errors\n')
+  for(i in 1:length(ppm_models)){
+    if(!class(ppm_models[[i]])[1] == "try-error") {
+      model_list[[n]] <- ppm_models[[i]]
+      n <- n+1
+    }else{
+      print(paste0("Model ",i, " for '", spp[i], "' has errors"))
+      cat(paste(i, ",", spp[i], "\n"),
+          file = errorfile, append = T)
+      error_list[[m]] <- ppm_models[[i]]
+      m <- m+1
+    }
+  }
+}
+
+## Author: Payal Bal
+## Calculate area-corrected richness for each raster in the stack
+area_corrted_richnes <- function (inputstack){
+  output <- stack()
+  if(class(inputstack) != "RasterStack"){
+    return(NA)
+  } else {
+    for (i in 1:dim(inputstack)[3]){
+      output <- stack(output, inputstack[[i]]/cellStats(inputstack[[i]], stat = "sum", na.rm = T))
+      ## values come out the same as inputstack[[i]]@data@values/sum(inputstack[[i]]@data@values, na.rm = T)
+      ## check by subsetting i=1 and comparing min and max with that of resultant raster
+    }
+    return(output)
+  }
+}
+## NOTES Area-corrected richness is the ratio of value in a pixel vs the sum of values across the area for a species. It gives a relative value that can be compared across species (unlike the relative likelihoods). So we can sum this for species. This is still an index of area corrected richness and not a measure of the richness directly. 
+
 ## Author: Nick Goulding
+## To move points falling outside mask onto nearest land cell
+## Problematic... we lose heterogeniety in data because of many cells being moved to the same land cell.
 nearestLand <- function (points, raster, max_distance) {
   # get nearest non_na cells (within a maximum distance) to a set of points
   # points can be anything extract accepts as the y argument
@@ -171,48 +217,4 @@ nearestLand <- function (points, raster, max_distance) {
                            })
   
   return (t(sapply(neighbour_list, nearest, raster)))
-}
-
-
-## Author: Payal Bal
-catch_errors <- function(i, ppm_models, species_names, errorfile) {
-  # catch errors in model outputs
-  # -> list of outputs for models without errors, 
-  # -> list of outputs for models with errors, 
-  # -> text file with list of models with errors (species indices and species names)
-  
-  cat('Checking model for ', species_names[i],'for errors\n')
-  for(i in 1:length(ppm_models)){
-    if(!class(ppm_models[[i]])[1] == "try-error") {
-      model_list[[n]] <- ppm_models[[i]]
-      n <- n+1
-    }else{
-      print(paste0("Model ",i, " for '", spp[i], "' has errors"))
-      cat(paste(i, ",", spp[i], "\n"),
-          file = errorfile, append = T)
-      error_list[[m]] <- ppm_models[[i]]
-      m <- m+1
-    }
-  }
-}
-
-
-
-
-
-## EXTRAS ----
-## Calculate area-corrected richness for each raster in the stack
-## NOTES Area-corrected richness is the ratio of value in a pixel vs the sum of values across the area for a species. It gives a relative value that can be compared across species (unlike the relative likelihoods). So we can sum this for species. This is still an index of area corrected richness and not a measure of the richness directly. 
-area_corrted_richnes <- function (inputstack){
-  output <- stack()
-  if(class(inputstack) != "RasterStack"){
-    return(NA)
-  } else {
-    for (i in 1:dim(inputstack)[3]){
-      output <- stack(output, inputstack[[i]]/cellStats(inputstack[[i]], stat = "sum", na.rm = T))
-      ## values come out the same as inputstack[[i]]@data@values/sum(inputstack[[i]]@data@values, na.rm = T)
-      ## check by subsetting i=1 and comparing min and max with that of resultant raster
-    }
-    return(output)
-  }
 }

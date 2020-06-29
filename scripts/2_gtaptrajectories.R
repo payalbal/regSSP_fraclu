@@ -24,9 +24,9 @@ rm(list = ls())
 library(sp)
 library(raster)
 source(file.path(".", "scripts", "0_functions.R"))
-regSSP_birds_data <- '/Volumes/discovery_data/regSSP_birds_data' # change as per server: boab = "./data"
-rdata_path <- file.path(regSSP_birds_data, "RData") # change as per server: boab - "./RData"
-output_path <- file.path(regSSP_birds_data, "output") # change as per server: boab - "./output"
+regSSP_data <- '/Volumes/discovery_data/regSSP_data' # change as per server: boab = "./data"
+rdata_path <- file.path(regSSP_data, "RData") # change as per server: boab - "./RData"
+output_path <- file.path(regSSP_data, "output") # change as per server: boab - "./output"
 if(!dir.exists(output_path)){dir.create(output_path)}
 
 
@@ -68,7 +68,7 @@ for (region in c("vn", "aus")){
     
     ## Urban
     ## Data source: http://www.fao.org/faostat/en/#data/LC
-    urban_cover <- as.data.frame(read.csv(file.path(regSSP_birds_data, "fao_data", "fao_urban_landcover.csv"), header = T))
+    urban_cover <- as.data.frame(read.csv(file.path(regSSP_data, "fao_data", "fao_urban_landcover.csv"), header = T))
     urban_cover <- urban_cover[,c("Area", "Year", "Value")]
     urban_cover$Area <- gsub("Australia", "aus", urban_cover$Area)
     urban_cover$Area <- gsub("Viet Nam", "vn", urban_cover$Area)

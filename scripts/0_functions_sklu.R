@@ -1,4 +1,6 @@
-#Four functions
+## Author: Simon Kapitza
+## https://github.com/kapitzas/ch2_landusemodel/blob/master/R/functions.R
+
 
 # calculate neihgourhood rasters
 # <- lu data
