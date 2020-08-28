@@ -1,25 +1,5 @@
-## on boab
+## Processing input data for analysis (using fractional land use)
 
-## Processing input data for analysis
-##
-## Outputs:
-##  1. min non-NA set masks - raster layer [3 files: til, vn, aus + 2 gsdm files from getData()]
-##  2. min non-NA set covariates - raster stack [3 files: til, vn, aus]
-##  3. covariates wihtout NA values - raster stack [3 files: til, vn, aus]
-##  4. bioq - raster stack [18 files: vn, aus for 0.25, 0.5 and 0.75
-##      quartiles under rcp 45, 60, 85]
-##  5  bioq wihtout NA values - raster stack [18 files: vn, aus for 0.25,
-##      0.5 and 0.75 quartiles under rcp 45, 60, 85]
-##  6. bioregions - raster layer [1 file: aus]
-##  7. harvested2016 - data.frame - 8 sectors x 2 columns (sector, proportion harvested)
-##      prop of land harvested for each commodity/sector in 2016 [2 files: vn, aus]
-##  8. gtap_landendowments - data.frame - 10 sectors x 52 years
-##      prop of land harvested 'endowmnet' for each commodity/sector in each
-##      year from 2019 - 2070 [6 files: vn, aus for ssp 1, 2, 3 ]
-##  9. occ - data.table of filtered gbif data for Aves
-##      [2 files: vn, aus + 2 text log files]
-## 
-## TOTAL FILES CREATED IN OUTPUT FOLDER (RData): xxx
 
 ## Master log file
 job_start <- Sys.time()
@@ -231,6 +211,8 @@ for (region in regions){
   lu <- projectRaster(lu, reg_mask)
   lu <- stack(lu)
   lu <- mask(lu, reg_mask)
+  
+  
   ## 2g. Bioclim - current ####
   ## Download tiles, mosaic, crop and write
   file_in <- list.files(file.path(gsdms_data, 'bio_30s'), full.names = T)

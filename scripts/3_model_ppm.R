@@ -1,4 +1,11 @@
+## Biodiversity modelling using ppms
 
+
+## -- TO DO -----------------------------------------
+
+## Plug in from aus-ppms.Rproj.... [under dev: redict& map steps]
+
+## --------------------------------------------------
 
 ## Set up work environment ####
 rm(list = ls())

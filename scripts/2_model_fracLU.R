@@ -1,6 +1,15 @@
 ## Land use model for fractinal data
 ## Ref: https://github.com/kapitzas/ch2_landusemodel
 
+
+## -- TO DO -----------------------------------------
+
+## Link GTAP data to landuse model
+## Plug in from land-use.Rproj (MDAP)
+
+## --------------------------------------------------
+
+
 ## Set working environment ####
 # setwd("./regSSP_fraclu/")
 

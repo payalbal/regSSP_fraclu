@@ -11,8 +11,6 @@
 ##    (i.e. herb, shrub, Oforest, Cforest) are estimated based on land-use 
 ##    simulations by accounting for mean suitability of land for LU class, 
 ##    see 3_landuse.R
-##
-## TOTAL FILES CREATED IN OUTPOT FOLDER (output): 6
 
 
 
