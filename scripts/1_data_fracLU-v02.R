@@ -1,7 +1,7 @@
-## Processing input data for analysis (using fractional land use)
+## Processing input data for land use analysis (using fractional land use)
 
 
-## Master log file
+## Master log file ####
 job_start <- Sys.time()
 masterlog <- paste0("./preprocessing_run.txt")
 writeLines(c(""), masterlog)
@@ -9,7 +9,7 @@ cat(paste0(">> Job start = ", job_start, "\n"), file = masterlog, append = TRUE)
 
 
 ## Set up work environment ####
-setwd("...")
+setwd("./regSSP_fraclu/")
 
 rm(list = ls())
 gc()
@@ -18,15 +18,27 @@ gc()
 system(paste0("curl https://raw.githubusercontent.com/skiptoniam/sense/master/R/gdal_raster_functions.R -o ", "./scripts/gdal_raster_functions.R"))
 source("./scripts/gdal_raster_functions.R")
 # devtools::install_github('smwindecker/gdaltools')
+
 x <- c('data.table','rgdal','rgeos','matrixStats',"sp",'raster',
        'WorldClimTiles','sense' , 'readxl', 'gdaltools', 'sf')
 lapply(x, require, character.only = TRUE)
 source(file.path(".", "scripts", "0_functions.R"))
-gsdms_data <- "/Volumes/uom_data/gsdms_data" #server: "/tempdata/workdir/data"
-regSSP_data <- "/Volumes/uom_data/regSSP_data" #server: "/tempdata/workdir/regSSP_data"
-rdata_path <- file.path(regSSP_data, "RData") #server: "./RData" 
+
+## Server paths
+  # setwd("/tempdata/workdir/regSSP_fraclu/")
+  # gsdms_data <- "/tempdata/workdir/data"
+  # regSSP_data <- "/tempdata/workdir/regSSP_data"
+  # rdata_path <- "./RData" 
+  # if(!dir.exists(rdata_path)){dir.create(rdata_path)}
+  # dstrast_path <- file.path(gsdms_data, "dst_raster")
+  # # dir.create(dstrast_path)
+
+## Local paths
+gsdms_data <- "/Volumes/uom_data/gsdms_data"
+regSSP_data <- "/Volumes/uom_data/regSSP_data"
+rdata_path <- file.path(regSSP_data, "RData")
 if(!dir.exists(rdata_path)){dir.create(rdata_path)}
-dstrast_path <- file.path(rdata_path, "dst_rasters") #server: "file.path(gsdms_data, "dst_rasters")"
+dstrast_path <- file.path(rdata_path, "dst_rasters")
 # dir.create(dstrast_path)
 
 
@@ -74,15 +86,14 @@ rm(mask_template)
 
 ## ***** Specify region for analysis (up till Bioclim - future) ***** ####
 ##  Rerun for c("vn", "aus", "til")
-
 region <- 'aus'
 # for (region in regions){
 
 ## 2. Prepare covariate data ####
 reg_mask <- readRDS(file.path(rdata_path, paste0("mask_", region, ".rds")))
 
-## Processing at 100km2
-reg_mask <- aggregate(reg_mask, fact = 10)
+  ## Processing at 100km2 ####
+  reg_mask <- aggregate(reg_mask, fact = 10)
 
 
 ## 2a. Topography ####
@@ -111,6 +122,7 @@ rm(elevation, roughness, slope, srtm)
 #  file.rename(paste0("./", temp$Name), sub(tools::file_path_sans_ext(basename(temp$Name)),"srtm_csi", paste0("./", temp$Name)))
 #  file.remove("srtm_csi.zip")
 
+
 ## 2b. Soil ####
 ## Source: https://daac.ornl.gov/SOILS/guides/igbp-surfaces.html
 ## See gsdms for data download instructions
@@ -123,54 +135,57 @@ names(soil) <- c( "bulk", "awco", "carb",  "nitro")
 
 
 ## 2c. Distance rasters ####
-## Rasters showing shortest distance to roads, built-up areas, lakes and rivers
+## Rasters showing shortest distance to roads, built-up areas, lakes, rivers, protected areas
 
-## Roads
+## Roads ####
 ## Source: http://sedac.ciesin.columbia.edu/data/set/groads-global-roads-open-access-v1/data-download#openModal
-# infile <- file.path(regSSP_data, "groads-v1-oceania-east-shp", "gROADS-v1-oceania-east.shp")
-# unlink(file.path(dstrast_path, "roads_raster.tif"))
-# outfile <- file.path(dstrast_path, "roads_raster.tif")
-# gdaltools::rasterize_shp(infile, outfile, res = res(reg_mask)[1], ext = extent(reg_mask)[c(1,2,3,4)])
-# 
-# infile <- file.path(dstrast_path, "roads_raster.tif")
-# unlink(file.path(dstrast_path, paste0("dstroads_", region, ".tif")))
-# outfile <- file.path(dstrast_path, paste0("dstroads_", region, ".tif"))
-# proximity_ras(infile, outfile)
-# 
-# infile <- file.path(regSSP_data, "groads-v1-oceania-east-shp", "gROADS-v1-oceania-east.shp")
-# roads <- sf::st_read(infile)
-# road_id <- matrix(c(0:7, "hwy", "pri", "sec", "tert", "loc", "trail", "priv", "unspec"), ncol = 2, nrow = 8)
-# road_id <- data.frame(road_id)
-# road_classes <- sort(unique(roads$FCLASS))
-# road_classes <- road_classes[-c(5, 3)]
-# for (i in road_classes){
-#   print(paste0("Writing subset ", i))
-#   out <- roads[which(roads$FCLASS == i),]
-#   outfile <- file.path(dstrast_path, paste0("roads_", road_id[i+1,2], "_raster.shp"))
-#   test <- st_crop(out, reg_mask)
-#   #ggplot() +  geom_sf(data = boundary, fill = "darkred") + geom_sf(data = test)
-#   
-#   if(nrow(test) == 0){
-#     message("road type not in study area")
-#     next}
-#   st_write(out, outfile)
-#   
-#   print(paste0("Rasterizing subset ", i))
-#   infile <- outfile
-#   outfile <- file.path(dstrast_path, paste0("roads_", road_id[i+1,2], "_raster.tif"))
-#   rasterize_shp(infile, outfile, res = res(reg_mask)[1], ext = extent(reg_mask)[c(1,2,3,4)])
-#   unlink(infile)
-#   
-#   print(paste0("Calculating subset ", i))
-#   infile <- outfile
-#   outfile <- file.path(dstrast_path, paste0("dstroads_", road_id[i+1,2], "_" , region, ".tif"))
-#   proximity_ras(infile, outfile)
-#   unlink(infile)
-# }
-plot(stack(list.files(dstrast_path, pattern = "dstroads", full.names = TRUE)))
+infile <- file.path(regSSP_data, "groads-v1-oceania-east-shp", "gROADS-v1-oceania-east.shp")
+unlink(file.path(dstrast_path, "roads_raster.tif"))
+outfile <- file.path(dstrast_path, "roads_raster.tif")
+gdaltools::rasterize_shp(infile, outfile, res = res(reg_mask)[1], ext = extent(reg_mask)[c(1,2,3,4)])
+
+infile <- file.path(dstrast_path, "roads_raster.tif")
+unlink(file.path(dstrast_path, paste0("dstroads_", region, ".tif")))
+outfile <- file.path(dstrast_path, paste0("dstroads_", region, ".tif"))
+proximity_ras(infile, outfile)
+
+dstroad <- list.files(dstrast_path, pattern = paste0("dstroads_", region), full.names = TRUE)
+
+  # ## Roads raster by road type
+  # infile <- file.path(regSSP_data, "groads-v1-oceania-east-shp", "gROADS-v1-oceania-east.shp")
+  # roads <- sf::st_read(infile)
+  # road_id <- matrix(c(0:7, "hwy", "pri", "sec", "tert", "loc", "trail", "priv", "unspec"), ncol = 2, nrow = 8)
+  # road_id <- data.frame(road_id)
+  # road_classes <- sort(unique(roads$FCLASS))
+  # road_classes <- road_classes[-c(5, 3)]
+  # for (i in road_classes){
+  #   print(paste0("Writing subset ", i))
+  #   out <- roads[which(roads$FCLASS == i),]
+  #   outfile <- file.path(dstrast_path, paste0("roads_", road_id[i+1,2], "_raster.shp"))
+  #   test <- st_crop(out, reg_mask)
+  #   #ggplot() +  geom_sf(data = boundary, fill = "darkred") + geom_sf(data = test)
+  # 
+  #   if(nrow(test) == 0){
+  #     message("road type not in study area")
+  #     next}
+  #   st_write(out, outfile)
+  # 
+  #   print(paste0("Rasterizing subset ", i))
+  #   infile <- outfile
+  #   outfile <- file.path(dstrast_path, paste0("roads_", road_id[i+1,2], "_raster.tif"))
+  #   rasterize_shp(infile, outfile, res = res(reg_mask)[1], ext = extent(reg_mask)[c(1,2,3,4)])
+  #   unlink(infile)
+  # 
+  #   print(paste0("Calculating subset ", i))
+  #   infile <- outfile
+  #   outfile <- file.path(dstrast_path, paste0("dstroads_", road_id[i+1,2], "_" , region, ".tif"))
+  #   proximity_ras(infile, outfile)
+  #   unlink(infile)
+  # }
+  # dstroad <- list.files(dstrast_path, pattern = "dstroads", full.names = TRUE)
 
 
-## Built-up areas
+## Built-up areas ####
 ## Source: http://ref.data.fao.org/map?entryId=c22837d0-88fd-11da-a88f-000d939bc5d8&tab=metadata
 infile <- file.path(gsdms_data, "builtup", "GHS_BUILT_LDS2014_GLOBE_R2018A_54009_250_V2_0.tif")
 infile_res <- crs(raster(infile))
@@ -198,7 +213,7 @@ sense::gdalDistance(infile, outfile)
   #                   outrast = outfile, cropToShape = TRUE)
 
 
-## Lakes
+## Lakes ####
 ## Source: http://www.soest.hawaii.edu/wessel/gshhg/
 ## See documentation here: /Volumes/uom_data/gsdms_data/lakesrivers/SHAPEFILES.TXT
 ## Read in files for resolution l, levels 2-4
@@ -226,7 +241,7 @@ infile <- outfile
 outfile <- file.path(dstrast_path, paste0("dstlakes_l24_", region, ".tif"))
 gdalDistance(infile, outfile)
 
-## Rivers
+## Rivers ####
 ## Source: http://www.soest.hawaii.edu/wessel/gshhg/
 ## See documentation here: /Volumes/uom_data/gsdms_data/lakesrivers/SHAPEFILES.TXT
 ## Read in files for resolution l, levels 2-9
@@ -253,46 +268,71 @@ outfile <- file.path(dstrast_path, paste0("dstrivers_l29_", region, ".tif"))
 gdalDistance(infile, outfile)
 
 
-## Protected Areas
-pafiles <- list.files(file.path(gsdms_data, "protectedareas/WDPA_Aug2020-shapefile"), pattern = "WDPA_Aug2020-shapefile", full.names = TRUE, recursive = TRUE)
+## Protected Areas ####
+pafiles <- list.files(paste0(gsdms_data, "/protectedareas"), pattern = "WDPA_Aug2020-shapefile", full.names = TRUE, recursive = TRUE)
 pafiles <- pafiles[grep("polygons.shp$", pafiles)]
 
-## Combine files
-temp <- readOGR(pafiles[1])
-for(i in 2:length(pafiles)) {
-  temp <- rgeos::gUnion(temp,readOGR(pafiles[i]))
+## Crop
+for (i in 1:length(pafiles)){
+  infile <- pafiles[i]
+  outfile <- paste0(dstrast_path, "/wdpa_cropped_", i, ".shp")
+  sense::ogrBBoxClip(infile, outfile, ext = raster::extent(reg_mask), returnShape = FALSE)
 }
-shapefile(x = temp2, file = file.path(gsdms_data, "processed", "wdpa.shp"))
 
-## Convert to raster & crop
-infile <- file.path(gsdms_data, "processed", "wdpa.shp")
-unlink(file.path(dstrast_path, paste0("wdpa_", region, ".tif")))
-outfile <- file.path(dstrast_path, paste0("wdpa_", region, ".tif"))
-rasterize_shp(infile, outfile, res = res(reg_mask)[1], ext = extent(reg_mask)[c(1,2,3,4)])
+test <- rgdal::readOGR(outfile[1])
+plot(test)
+
+## Subset WDPA layer by IUCN categories and save by year
+pa.iucn.cat <- c("Ia", "Ib", "II")
+pa.status.yrs <- c("2005", "2010", "2018")
+
+infile <- list.files(dstrast_path, pattern = "wdpa_cropped", full.names = TRUE, recursive = TRUE)
+infile <- infile[grep(".shp$", infile)]
+outfile <- gsub("_cropped", "", infile)
+
+for (i in 1:length(infile)){
+  test <- sf::st_read(infile[i])
+  # plot(test[which(test$IUCN_CAT %in% pa.iucn.cat),], max.plot = 1)
+  
+  for (j in 1:length(pa.status.yrs)){
+    temp.outfile <- gsub(".shp$", paste0("_subset_yr", pa.status.yrs[j], "_", region, ".shp"), outfile[i])
+    pa <- test[which(test$IUCN_CAT %in% pa.iucn.cat & test$STATUS_YR <= pa.status.yrs[j]),]
+    sf::st_write(pa, dsn = temp.outfile, overwrite = TRUE)
+  }
+}
+
+## Convert to raster
+infile <- list.files(dstrast_path, pattern = "_subset_", full.names = TRUE, recursive = TRUE)
+infile <- infile[grep(".shp$", infile)]
+outfile <- gsub(".shp$", ".tif", infile)
+# gdaltools::rasterize_shp(infile, outfile, res = res(reg_mask)[1], ext = extent(reg_mask)[c(1,2,3,4)])
+mapply(gdaltools::rasterize_shp, input_file = infile, output_file = outfile, 
+       MoreArgs = list(res = res(reg_mask)[1], ext = extent(reg_mask)[c(1,2,3,4)]))
+
+## Combine rasters
+infile <-  outfile
+
+for (i in 1:length(pa.status.yrs)) {
+  message(cat("Processing year..", pa.status.yrs[i]))
+  temp.infile <- grep(pa.status.yrs[i], infile, value = TRUE)
+  outfile <- gsub("_1", "", temp.infile[1])
+  
+  ## Make a template raster file to build onto. Think of this a big blank canvas to add tiles to.
+  e <- extent(reg_mask)
+  template <- raster(e)
+  projection(template) <- crs(reg_mask)
+  unlink(outfile)
+  writeRaster(template, file = outfile, format="GTiff")
+  
+  ## Merge all raster tiles into one big raster.
+  gdalUtils::mosaic_rasters(gdalfile = temp.infile, dst_dataset = outfile, of="GTiff")
+  gdalinfo(outfile)
+}
 
 ## Create proximity raster
-infile <- outfile
-outfile <- file.path(dstrast_path, paste0("dstwdpa_", region, ".tif"))
-gdalDistance(infile, outfile)
-
-
-
-infile <- file.path(raw_path, "Global", "Global Protected Areas", "WDPA_Mar2018-shapefile-polygons.shp")
-outfile <- file.path(rdata_path, "PA_cropped.shp")
-crop_shp(infile, outfile, ext = extent(reg_mask))
-test <- sf::st_read(outfile)
-plot(test[which(test$IUCN_CAT%in%c("Ia", "Ib", "II")),], max.plot = 1, add = TRUE)
-
-years <- yrs[ts]
-for (i in 1:length(years)){
-  PA <- test[which(test$IUCN_CAT%in%c("Ia", "Ib", "II") & test$STATUS_YR <= years[i]),]
-  r <- rasterize(PA, reg_mask)
-  out <- reg_mask
-  out[which(!is.na(r[]))] <- 0
-  out <- raster::mask(out, reg_mask)
-  plot(out)
-  writeRaster(out, file.path(rdata_path, paste0("PA", years[i], "_ama.tif")), format = "GTiff", overwrite = TRUE)
-}
+infile <- list.files(dstrast_path, pattern = "wdpa_subset_", full.names = TRUE, recursive = TRUE)
+outfile <- file.path(dstrast_path, paste0(gsub("wdpa_subset", "dstwdpa", tools::file_path_sans_ext(basename(infile))), ".tif"))
+mapply(sense::gdalDistance, infile, outfile)
 
 
 
