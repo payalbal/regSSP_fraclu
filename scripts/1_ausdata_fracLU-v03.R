@@ -1,4 +1,11 @@
 ## Processing input data for land use analysis (using fractional land use)
+##
+## NOTES:
+## See gsdms.Rproj for data download scripts
+##
+## TO FIX:
+## Specify correct crs for vietnam...
+## Specify pixel size for 10km resolution for vn...
 
 
 ## Master log file ####
@@ -8,30 +15,45 @@ writeLines(c(""), masterlog)
 cat(paste0(">> Job start = ", job_start, "\n"), file = masterlog, append = TRUE)
 
 
-## Set up work environment ####
-setwd("./regSSP_fraclu/")
 
+## Set up work environment ####
 rm(list = ls())
 gc()
-# devtools::install_github('kapitzas/WorldClimTiles')
-# devtools::install_github('skiptoniam/sense')
-system(paste0("curl https://raw.githubusercontent.com/skiptoniam/sense/master/R/gdal_raster_functions.R -o ", "./scripts/gdal_raster_functions.R"))
-source("./scripts/gdal_raster_functions.R")
-# devtools::install_github('smwindecker/gdaltools')
 
-x <- c('data.table','rgdal','rgeos','matrixStats',"sp",'raster',
-       'WorldClimTiles','sense' , 'readxl', 'gdaltools', 'sf')
-lapply(x, require, character.only = TRUE)
+setwd("./regSSP_fraclu/")
+
+# devtools::install_github('smwindecker/gdaltools')
+# devtools::install_github('skiptoniam/sense')
+system(paste0("curl https://raw.githubusercontent.com/skiptoniam/sense/master/R/gdal_raster_functions.R -o ",
+              "./scripts/gdal_raster_functions.R"))
+source("./scripts/gdal_raster_functions.R")
+
+# ## jgarber's repo:
+# library(RCurl)
+# url <- "https://gitlab.unimelb.edu.au/garberj/gdalutilsaddons/-/blob/master/gdal_calc.R"
+# url.exists(url)
+# source(url)
+# devtools::source_url(url)
+# url <- "https://gitlab.unimelb.edu.au/garberj/gdalutilsaddons.git"
+# devtools::install_git(url = url)
+source("./gdal_calc.R") # by jgarber
+
 source(file.path(".", "scripts", "0_functions.R"))
 
-## Server paths
-  # setwd("/tempdata/workdir/regSSP_fraclu/")
-  # gsdms_data <- "/tempdata/workdir/data"
-  # regSSP_data <- "/tempdata/workdir/regSSP_data"
-  # rdata_path <- "./RData" 
-  # if(!dir.exists(rdata_path)){dir.create(rdata_path)}
-  # dstrast_path <- file.path(gsdms_data, "dst_raster")
-  # # dir.create(dstrast_path)
+x <- c('data.table','rgdal','rgeos','matrixStats',"sp",'raster',
+       'readxl', 'gdaltools', 'sf')
+lapply(x, require, character.only = TRUE)
+rm(x)
+
+# ## Server paths
+# setwd("/tempdata/workdir/regSSP_fraclu/")
+# gsdms_data <- "/tempdata/workdir/data"
+# regSSP_data <- "/tempdata/workdir/regSSP_data"
+# rdata_path <- "./RData" 
+# if(!dir.exists(rdata_path)){dir.create(rdata_path)}
+# dstrast_path <- file.path(gsdms_data, "dst_raster")
+# # dir.create(dstrast_path)
+
 
 ## Local paths
 gsdms_data <- "/Volumes/uom_data/gsdms_data"
@@ -39,29 +61,32 @@ regSSP_data <- "/Volumes/uom_data/regSSP_data"
 rdata_path <- file.path(regSSP_data, "RData")
 if(!dir.exists(rdata_path)){dir.create(rdata_path)}
 dstrast_path <- file.path(rdata_path, "dst_rasters")
-# dir.create(dstrast_path)
+if(!dir.exists(dstrast_path)){dir.create(dstrast_path)}
 
 
-## 1. Prepare masks ####
+
+## >> Prepare masks: In WGS84 ####
 regions <- c("vn", "aus", "til")
 
 for (region in regions){
   
   if (region == "til") {
     reg_mask <- raster(extent(90, 120, 0, 30),
-                       crs = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0 ",
+                       crs = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0",
                        res = 0.008333333)
     reg_mask[] <- 1
-    saveRDS(reg_mask, file.path(rdata_path, paste0("mask_", region, ".rds")))
-  } else {
+    writeRaster(reg_mask, file.path(rdata_path, paste0("mask_", region, ".tif")))
+  } 
+  
+  else {
     reg_mask <- getData("GADM", country = region, level = 0, path = rdata_path)
-    reg_mask <- gSimplify(reg_mask, tol = 0.00833)
+    reg_mask <- gSimplify(reg_mask, tol = 0.008333333)
     
     if (region == "vn") {
       mask_template <- raster(
         nrow = 1779,
         ncol = 879,
-        crs = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0 ",
+        crs = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0",
         ext = extent(c(102.1417, 109.4667, 8.566667, 23.39167))
       )
       mask_template[] <- 1
@@ -71,71 +96,50 @@ for (region in regions){
       mask_template <- raster(
         nrow = 4091,
         ncol = 4990,
-        crs = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0 ",
+        crs = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0",
         ext = extent(c(112.4667, 154.05,-44.04167,-9.95))
       )
       mask_template[] <- 1
     }
     reg_mask <- mask(mask_template, reg_mask)
-    saveRDS(reg_mask, file.path(rdata_path, paste0("mask_", region, ".rds")))
+    writeRaster(reg_mask, file.path(rdata_path, paste0("mask_", region, ".tif")))
     plot(reg_mask)
   }
 }
 rm(mask_template)
 
 
-## ***** Specify region for analysis (up till Bioclim - future) ***** ####
+
+## Specify region for analysis ####
 ##  Rerun for c("vn", "aus", "til")
 region <- 'aus'
-# for (region in regions){
 
-## 2. Prepare covariate data ####
+
+## Load mask file ####
 reg_mask <- readRDS(file.path(rdata_path, paste0("mask_", region, ".rds")))
 
-  ## Processing at 100km2 ####
-  reg_mask <- aggregate(reg_mask, fact = 10)
+# ## Specify desired projection and resolution for analyses ####
+# infile <- file.path(rdata_path, paste0("maskWGS_", region, ".tif"))
+# old_crs <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+# 
+# if (region == "aus"){
+#   new_crs <- "+proj=aea +lat_0=0 +lon_0=132 +lat_1=-18 +lat_2=-36 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+#   # reso = c(1000, 1000) # at 1km
+#   reso = c(10000, 10000) # at 10km
+# } else {
+#   new_crs <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+#   res0 = c(0.008333333,0.008333333) # at 1km
+# }
+# 
+# outfile <- sub("WGS","", infile)
+# gdalwarp(infile, outfile, s_srs = old_crs, t_srs = old_crs, tr = reso) 
+# raster(infile)
+# raster(outfile)
 
 
-## 2a. Topography ####
-## Source: https://webmap.ornl.gov/ogc/wcsdown.jsp?dg_id=10008_1
-## Select polygon including vn and aus
-srtm <- raster(file.path(regSSP_data, "sdat_10008_1_20191110_184812575.asc"))
-crs(srtm) <- crs(reg_mask)
-srtm <- projectRaster(srtm, reg_mask)
-srtm <- crop(srtm, reg_mask)
-srtm <- mask(srtm, reg_mask)
-plot(srtm)
 
-names(srtm) <- "srtm"
-elevation <- mask(srtm, reg_mask)
-slope <- terrain(srtm, opt = "slope")
-roughness <- terrain(srtm, opt = "roughness")
-terrain <- stack(elevation, slope, roughness)
-rm(elevation, roughness, slope, srtm)
-
-# ## Alternate SRTM source: http://srtm.csi.cgiar.org/srtmdata/ (extent= -180,180,-60,60)
-#  ##  on weblink click on link for enntire globe.
-#  setwd("../data")
-#  system("wget http://srtm.csi.cgiar.org/wp-content/uploads/files/srtm_30x30/TIFF/N00E090.zip -O srtm_csi.zip")
-#  temp <- unzip("srtm_csi.zip", list = TRUE)
-#  unzip("srtm_csi.zip", exdir = "./")
-#  file.rename(paste0("./", temp$Name), sub(tools::file_path_sans_ext(basename(temp$Name)),"srtm_csi", paste0("./", temp$Name)))
-#  file.remove("srtm_csi.zip")
-
-
-## 2b. Soil ####
-## Source: https://daac.ornl.gov/SOILS/guides/igbp-surfaces.html
-## See gsdms for data download instructions
-soil <- stack(list.files(file.path(gsdms_data, "orders"), pattern = "*.dat", full.names = T, recursive = T))
-crs(soil) <- crs(reg_mask)
-soil <- projectRaster(soil, reg_mask)
-soil <- crop(soil, reg_mask)
-soil <- mask(soil, reg_mask)
-names(soil) <- c( "bulk", "awco", "carb",  "nitro")
-
-
-## 2c. Distance rasters ####
-## Rasters showing shortest distance to roads, built-up areas, lakes, rivers, protected areas
+## >> Prepare proximity rasters ####
+## Rasters showing shortest distance to features
 
 ## Roads ####
 ## Source: http://sedac.ciesin.columbia.edu/data/set/groads-global-roads-open-access-v1/data-download#openModal
@@ -149,40 +153,41 @@ unlink(file.path(dstrast_path, paste0("dstroads_", region, ".tif")))
 outfile <- file.path(dstrast_path, paste0("dstroads_", region, ".tif"))
 gdaltools::proximity_ras(infile, outfile)
 
-dstroad <- list.files(dstrast_path, pattern = paste0("dstroads_", region), full.names = TRUE)
+dstroad <- outfile
+# list.files(dstrast_path, pattern = paste0("dstroads_", region), full.names = TRUE)
 
-  # ## Roads raster by road type
-  # infile <- file.path(regSSP_data, "groads-v1-oceania-east-shp", "gROADS-v1-oceania-east.shp")
-  # roads <- sf::st_read(infile)
-  # road_id <- matrix(c(0:7, "hwy", "pri", "sec", "tert", "loc", "trail", "priv", "unspec"), ncol = 2, nrow = 8)
-  # road_id <- data.frame(road_id)
-  # road_classes <- sort(unique(roads$FCLASS))
-  # road_classes <- road_classes[-c(5, 3)]
-  # for (i in road_classes){
-  #   print(paste0("Writing subset ", i))
-  #   out <- roads[which(roads$FCLASS == i),]
-  #   outfile <- file.path(dstrast_path, paste0("roads_", road_id[i+1,2], "_raster.shp"))
-  #   test <- st_crop(out, reg_mask)
-  #   #ggplot() +  geom_sf(data = boundary, fill = "darkred") + geom_sf(data = test)
-  # 
-  #   if(nrow(test) == 0){
-  #     message("road type not in study area")
-  #     next}
-  #   st_write(out, outfile)
-  # 
-  #   print(paste0("Rasterizing subset ", i))
-  #   infile <- outfile
-  #   outfile <- file.path(dstrast_path, paste0("roads_", road_id[i+1,2], "_raster.tif"))
-  #   rasterize_shp(infile, outfile, res = res(reg_mask)[1], ext = extent(reg_mask)[c(1,2,3,4)])
-  #   unlink(infile)
-  # 
-  #   print(paste0("Calculating subset ", i))
-  #   infile <- outfile
-  #   outfile <- file.path(dstrast_path, paste0("dstroads_", road_id[i+1,2], "_" , region, ".tif"))
-  #   proximity_ras(infile, outfile)
-  #   unlink(infile)
-  # }
-  # dstroad <- list.files(dstrast_path, pattern = "dstroads", full.names = TRUE)
+# ## Roads raster by road type
+# infile <- file.path(regSSP_data, "groads-v1-oceania-east-shp", "gROADS-v1-oceania-east.shp")
+# roads <- sf::st_read(infile)
+# road_id <- matrix(c(0:7, "hwy", "pri", "sec", "tert", "loc", "trail", "priv", "unspec"), ncol = 2, nrow = 8)
+# road_id <- data.frame(road_id)
+# road_classes <- sort(unique(roads$FCLASS))
+# road_classes <- road_classes[-c(5, 3)]
+# for (i in road_classes){
+#   print(paste0("Writing subset ", i))
+#   out <- roads[which(roads$FCLASS == i),]
+#   outfile <- file.path(dstrast_path, paste0("roads_", road_id[i+1,2], "_raster.shp"))
+#   test <- st_crop(out, reg_mask)
+#   #ggplot() +  geom_sf(data = boundary, fill = "darkred") + geom_sf(data = test)
+# 
+#   if(nrow(test) == 0){
+#     message("road type not in study area")
+#     next}
+#   st_write(out, outfile)
+# 
+#   print(paste0("Rasterizing subset ", i))
+#   infile <- outfile
+#   outfile <- file.path(dstrast_path, paste0("roads_", road_id[i+1,2], "_raster.tif"))
+#   rasterize_shp(infile, outfile, res = res(reg_mask)[1], ext = extent(reg_mask)[c(1,2,3,4)])
+#   unlink(infile)
+# 
+#   print(paste0("Calculating subset ", i))
+#   infile <- outfile
+#   outfile <- file.path(dstrast_path, paste0("dstroads_", road_id[i+1,2], "_" , region, ".tif"))
+#   proximity_ras(infile, outfile)
+#   unlink(infile)
+# }
+# dstroad <- list.files(dstrast_path, pattern = "dstroads", full.names = TRUE)
 
 
 ## Built-up areas ####
@@ -203,14 +208,16 @@ infile <- outfile
 outfile <- file.path(dstrast_path, paste0("dstbuiltup_", region, ".tif"))
 sense::gdalDistance(infile, outfile)
 
-  # infile <- outfiile
-  # outfile <- file.path(dstrast_path, paste0("dstbuiltup_crop_", region, ".tif"))
-  # aus.shp <- rnaturalearth::ne_countries(country = "australia",
-  #                                         returnclass = "sp")
-  # shapefile(aus.shp, file = file.path(dstrast_path, "aus.shp"))
-  # aus.shp <- readOGR(file.path(dstrast_path, "aus.shp"))
-  # gdalClipWithShape(inrast = infile, inshp = aus.shp,
-  #                   outrast = outfile, cropToShape = TRUE)
+dstbuiltup <- outfile
+
+# infile <- outfiile
+# outfile <- file.path(dstrast_path, paste0("dstbuiltup_crop_", region, ".tif"))
+# aus.shp <- rnaturalearth::ne_countries(country = "australia",
+#                                         returnclass = "sp")
+# shapefile(aus.shp, file = file.path(dstrast_path, "aus.shp"))
+# aus.shp <- readOGR(file.path(dstrast_path, "aus.shp"))
+# gdalClipWithShape(inrast = infile, inshp = aus.shp,
+#                   outrast = outfile, cropToShape = TRUE)
 
 
 ## Lakes ####
@@ -218,9 +225,9 @@ sense::gdalDistance(infile, outfile)
 ## See documentation here: /Volumes/uom_data/gsdms_data/lakesrivers/SHAPEFILES.TXT
 ## Read in files for resolution l, levels 2-4
 l2 <- readOGR(file.path(gsdms_data, "lakesrivers/GSHHS_shp/l", "GSHHS_l_L2.shp"))
-  # ## same as
-  # l2 <- sf::st_read(l2)
-  # l2sp <- as(l2, "Spatial")
+# ## same as
+# l2 <- sf::st_read(l2)
+# l2sp <- as(l2, "Spatial")
 l3 <- readOGR(file.path(gsdms_data, "lakesrivers/GSHHS_shp/l", "GSHHS_l_L3.shp"))
 l4 <- readOGR(file.path(gsdms_data, "lakesrivers/GSHHS_shp/l", "GSHHS_l_L4.shp"))
 
@@ -241,6 +248,9 @@ infile <- outfile
 outfile <- file.path(dstrast_path, paste0("dstlakes_l24_", region, ".tif"))
 gdalDistance(infile, outfile)
 
+dstlakes <- outfile
+
+
 ## Rivers ####
 ## Source: http://www.soest.hawaii.edu/wessel/gshhg/
 ## See documentation here: /Volumes/uom_data/gsdms_data/lakesrivers/SHAPEFILES.TXT
@@ -252,7 +262,7 @@ river_files <- grep("L02|L03|L04|L05|L06|L07|L08|L09", river_files, value = TRUE
 ## Combine levels 2-9
 temp <- readOGR(river_files[1])
 for(i in 2:length(river_files)) {
-    temp <- rgeos::gUnion(temp,readOGR(river_files[i]))
+  temp <- rgeos::gUnion(temp,readOGR(river_files[i]))
 }
 shapefile(x = temp2, file = file.path(dstrast_path, "rivers_l29.shp"))
 
@@ -267,9 +277,12 @@ infile <- outfile
 outfile <- file.path(dstrast_path, paste0("dstrivers_l29_", region, ".tif"))
 gdalDistance(infile, outfile)
 
+dstrivers <- outfile
+
 
 ## Protected Areas ####
-pafiles <- list.files(paste0(gsdms_data, "/protectedareas"), pattern = "WDPA_Aug2020-shapefile", full.names = TRUE, recursive = TRUE)
+pafiles <- list.files(paste0(gsdms_data, "/protectedareas"), 
+                      pattern = "WDPA_Aug2020-shapefile", full.names = TRUE, recursive = TRUE)
 pafiles <- pafiles[grep("polygons.shp$", pafiles)]
 
 ## Crop
@@ -325,26 +338,59 @@ for (i in 1:length(pa.status.yrs)) {
   writeRaster(template, file = outfile, format="GTiff")
   
   ## Merge all raster tiles into one big raster.
-  gdalUtils::mosaic_rasters(gdalfile = temp.infile, dst_dataset = outfile, of="GTiff")
+  gdalUtils::mosaic_rasters(gdalfile = temp.infile, 
+                            dst_dataset = outfile, of="GTiff")
   gdalinfo(outfile)
 }
 
 ## Create proximity raster
-infile <- list.files(dstrast_path, pattern = "wdpa_subset_", full.names = TRUE, recursive = TRUE)
-outfile <- file.path(dstrast_path, paste0(gsub("wdpa_subset", "dstwdpa", tools::file_path_sans_ext(basename(infile))), ".tif"))
+infile <- list.files(dstrast_path, pattern = "wdpa_subset_", 
+                     full.names = TRUE, recursive = TRUE)
+outfile <- file.path(dstrast_path, 
+                     paste0(gsub("wdpa_subset", "dstwdpa", 
+                                 tools::file_path_sans_ext(basename(infile))), 
+                            ".tif"))
 mapply(sense::gdalDistance, infile, outfile)
 
+dstwdpa <- outfile
+
+## List proximity raster files ####
+prox.files <- c(dstroad, dstbuiltup, dstlakes, dstrivers, dstwdpa)
+
+rm(list=setdiff(ls(), c("rdata_path", "gsdms_data", "regSSP_data", "reg")))
+gc()
 
 
-## 2e. Population density ####
+
+## >> Prepare covariate data ####
+
+## Topography ####
+## Source: https://webmap.ornl.gov/ogc/wcsdown.jsp?dg_id=10008_1
+## Select polygon including vn and aus
+srtm <- file.path(regSSP_data, "sdat_10008_1_20191110_184812575.asc")
+
+  # ## Alternate SRTM source: http://srtm.csi.cgiar.org/srtmdata/ (extent= -180,180,-60,60)
+  #  ##  on weblink click on link for enntire globe.
+  #  setwd("../data")
+  #  system("wget http://srtm.csi.cgiar.org/wp-content/uploads/files/srtm_30x30/TIFF/N00E090.zip -O srtm_csi.zip")
+  #  temp <- unzip("srtm_csi.zip", list = TRUE)
+  #  unzip("srtm_csi.zip", exdir = "./")
+  #  file.rename(paste0("./", temp$Name), sub(tools::file_path_sans_ext(basename(temp$Name)),"srtm_csi", paste0("./", temp$Name)))
+  #  file.remove("srtm_csi.zip")
+
+
+## Soil ####
+## Source: https://daac.ornl.gov/SOILS/guides/igbp-surfaces.html
+soil <- list.files(file.path(gsdms_data, "orders"), 
+                   pattern = "*.dat", full.names = T, recursive = T)
+
+
+## Population density ####
 ## Source: http://sedac.ciesin.columbia.edu/data/set/grump-v1-population-density
-popdens <- raster(file.path(gsdms_data, "popdens", "gluds00ag.bil"))
-popdens <- crop(popdens, reg_mask, snap = "near")
-popdens <- mask(popdens, reg_mask)
-names(popdens) <- "popd"
+popdens <- file.path(gsdms_data, "popdens", "gluds00ag.bil")
 
 
-## 2f. Landuse ####
+## Landuse ####
 ## Source: Copernicus data (for fraclu analysis)
 ## Link @ GEE: https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_Landcover_100m_Proba-V_Global
 ## Direct download link: https://zenodo.org/communities/copernicus-land-cover/search?page=1&size=20
@@ -360,106 +406,122 @@ names(popdens) <- "popd"
 
 # ... gee.py script
 # ...download by title
+lu1 <- file.path(file.path(gsdms_data, "copernicus", "global_frac/sklu_classes", "landuse_class1.tif"))
+lu2 <- file.path(file.path(gsdms_data, "copernicus", "global_frac/sklu_classes", "landuse_class2.tif"))
+lu3 <- file.path(file.path(gsdms_data, "copernicus", "global_frac/sklu_classes", "landuse_class3.tif"))
+lu4 <- file.path(file.path(gsdms_data, "copernicus", "global_frac/sklu_classes", "landuse_class4.tif"))
+lu5 <- file.path(file.path(gsdms_data, "copernicus", "global_frac/sklu_classes", "landuse_class5.tif"))
+landuse <- c(lu1, lu2, lu3, lu4, lu5)
 
-lu <- stack(file.path(regSSP_data, "copernicus_fractional/sklu_classes", paste0("copernicus_resampled_1000_", region, ".tif")))
-lu <- projectRaster(lu, reg_mask)
-lu <- stack(lu)
-lu <- mask(lu, reg_mask)
+
+## Bioclim - current ####
+bio_current <- list.files(paste0(gsdms_data, "/bio_30s"), 
+                          pattern = "bio_current*", full.names = TRUE)
+# bio_names <- gsub("_current_", "", bio_current)
 
 
-## 2g. Bioclim - current ####
-## Download tiles, mosaic, crop and write
-file_in <- list.files(file.path(gsdms_data, 'bio_30s'), full.names = T)
-bioclim <- list()
-
-for (f in 1:length(file_in)){
-  bioclim[[f]] <- crop(raster(file_in[f]), reg_mask)
-  bioclim[[f]] <- mask(bioclim[[f]], reg_mask)
-}
-bioclim <- stack(bioclim)
-names(bioclim) <- paste0("bio", 1:19)  
-
-## Sync NAs - I ####
-## Find min non-NA set values across mask and covariates and sync NAs 
-covariates <- stack(terrain, soil, distances, pa, popdens, bioclim, lu)
-for(i in 1:nlayers(covariates)){
-  reg_mask <- mask(reg_mask, covariates[[i]]) # to find minimum non-NA set values for mask layer
-  print(i)
-}
-
-for(i in 1:nlayers(covariates)){
-  covariates[[i]] <- mask(covariates[[i]], reg_mask) # mask using updated mask layer
-  print(i)
-}
-
-summary(reg_mask) # summary(reg_mask[])
-summary(as.data.frame(covariates))
-saveRDS(readAll(covariates), file = paste0(rdata_path, "/covariates_", region, ".rds"))
-saveRDS(reg_mask, file = paste0(rdata_path, "/mask_", region, ".rds"))
-
-rm(terrain, soil, distances, pa, popdens, bioclim, lu)
-rm(reg_mask, covariates, file_in)
-gc()
-# } ## for region{}
-
-## 2h. Bioclim - future ####
-## Global variables
+## Bioclim - future ####
 # regions <- c("vn", "aus")
 # rcps <- c("45", "60", "85")
-# models <- c("BC", "CC", "GS", "HD", "HE", "IP", "MI", "MR", "MC", "MG", "NO")
+models <- c("BC", "CC", "GS", "HD", "HE", "IP", "MI", "MR", "MC", "MG", "NO")
+gcms <- list.files(file.path(gsdms_data, "gcm_30s"), full.names = TRUE)
+
+  # ## Files by RCP
+  # bio_rcp45 <- list.files(file.path(gsdms_data, "gcm_30s"), pattern = "*bc45", full.names = TRUE)
+  # bio_rcp60 <- list.files(file.path(gsdms_data, "gcm_30s"), pattern = "*bc60*", full.names = TRUE)
+  # bio_rcp85 <- list.files(file.path(gsdms_data, "gcm_30s"), pattern = "*bc85*", full.names = TRUE)
 
 
-# ## Downlaoad GCM model predictions
-# urls_bioclim <- c()
-# for (model_i in models){
-#   for (rcp_j in rcps){
-#     fn = paste0(tolower(model_i), rcp_j, 'bi70', '.zip')
-#     thisurl = paste0('https://biogeo.ucdavis.edu/data/climate/cmip5/30s/', fn)
-#     urls_bioclim = c(urls_bioclim, thisurl)
-#   }
-# }
-# library(bitops)
-# library(RCurl)
-# test = lapply(urls_bioclim, url.exists)
-# all(unlist(test))
-# 
-# zipdst = file.path(gsdms_data, 'gcm_30s.zip')
-# rasterdst = file.path(gsdms_data, 'gcm_30s/')
-# if(!dir.exists(rasterdst)) {
-#   dir.create(rasterdst)
-# } # end if !dir.exists
-# for (i in 1:length(urls_bioclim)){
-#   download_from_url(urls = urls_bioclim[i], zipdst, rasterdst)
-# }
-# 
-# ## Mask data for study regions & create stacks by region and gcms
-# files_gcm <- list.files(file.path(gsdms_data, 'gcm_30s'), full.names = T, recursive = T)
-# gcm_reg_path <- file.path(regSSP_data, 'gcm_reg')
-gcm_quant_path <- file.path(regSSP_data, 'gcm_quant')
-# gcm_reg_path <- file.path(regSSP_data, 'gcm_reg')
-# dir.create(gcm_reg_path)
-# 
-# for(region in regions){
-#   for(model_i in models){
-#     reg_stack <- list()
-#     file_mod <- files_gcm[grepl(model_i, files_gcm)]
-#     for(j in 1:length(rcps)){
-#       file_mod_rcp <- file_mod[grepl(rcps[j], file_mod)]
-#       temp_stack <- list()
-#       for(f in 1:length(file_mod_rcp)){
-#         reg_mask <- readRDS(file.path(rdata_path, paste0("mask_", region, ".rds")))
-#         temp_stack[[f]] <- mask(crop(raster(file_mod_rcp[f]), reg_mask), reg_mask)
-#       }
-#       reg_stack[[j]] <- readAll(brick(temp_stack))
-#     }
-#     saveRDS(reg_stack, file = paste0(gcm_reg_path, "/", region, "_", model_i, ".rds"))
-#   }
-# }
-# rm(temp_stack, reg_stack)
-# 
-# ## Extract cell-wise quartiles across GCM
+
+## >> Processing covariate layers ####
+cov_files <- c(srtm, soil, popdens, landuse, bio_current, gcms)
+all(lapply(cov_files, file.exists))
+
+## step one_clip by e
+infile <- cov_files
+# file_in <- c(bioclim, srtm, soil, landuse)
+outfile <- file.path(data_processed, paste0(tools::file_path_sans_ext(basename(infile)), "_cropped.", tools::file_ext(infile)))
+reso_wgs <- res(readRDS(file.path(rdata_path, paste0("mask_", region, ".tif"))))
+e <- extent(readRDS(file.path(rdata_path, paste0("mask_", region, ".tif"))))
+mapply(gdalCrop, inpath = infile, outpath = outfile, MoreArgs = list(extent=e, resolution=reso_wgs, return = FALSE)) 
+
+## step two_reproject: all to WGS84
+infile <- outfile #list.files(data_processed, pattern = "_cropped", full.names = TRUE)
+outfile <- sub("_cropped", "_aligned", infile)
+
+new_crs  <-  "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0" 
+new_res <- c(0.008333333,0.008333333)
+
+  # if (region == "aus") {
+  #   ## aus: Australian Albers
+  #   new_crs = "+proj=aea +lat_0=0 +lon_0=132 +lat_1=-18 +lat_2=-36 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+  #   new_res = c(...)
+  # } else {
+  #   ## vn: WGS84
+  #   new_crs = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+  #   new_res = c(0.008333333,0.008333333)
+  # }
+
+file.res <-  ...
+
+for (i in length(infile)) {
+  gdalwarp(srcfile = infile[i], dstfile = outfile[i], s_srs = fileres[i], t_srs = new_crs, tr = new_res, verbose=TRUE)
+}
+
+mapply(gdalwarp, srcfile = infile, dstfile = outfile, MoreArgs = list(s_srs = wgs_crs, t_srs = new_crs, tr = reso, verbose=TRUE))
+
+## step three_mask
+## https://gitlab.unimelb.edu.au/garberj/gdalutilsaddons/-/blob/master/gdal_calc.R
+outfile2 <- sub("_aligned", "_masked", outfile)
+outfile2 <- paste0(tools::file_path_sans_ext(outfile2), ".tif")
+
+mask_file <- file.path(rdata_path, paste0("mask_", region, ".tif"))
+mapply(gdalmask, infile = outfile, mask = mask_file, outfile = outfile2, MoreArgs = list(output_Raster = FALSE, overwrite=FALSE, verbose=TRUE))
+# file.remove(c(infile, outfile))
+
+
+## Find min non-NA set values across mask and covariates and sync NAs ####
+infile <- list.files(data_processed, pattern = "_masked", full.names = TRUE)
+mask_file <- readRDS(file.path(rdata_path, paste0("mask_", region, ".tif")))
+mask_file2 <- file.path(data_processed, paste0("mask_", region, "_nona", ".tif"))
+file.copy(mask_file, mask_file2)
+
+for(j in 1:length(infile)){
+  print(paste0("processing file = ", j, " of ", length(infile) ,":", infile[j], " for updating mask"))
+  # gdalmask(infile = mask_file, mask = infile[j], outfile = mask_file, output_Raster = FALSE, overwrite=TRUE, verbose=TRUE)
+  gdalcalc(calc="((A>-9999) & (B==1))", infile = list(A=infile[j], B=mask_file2),outfile = mask_file2,
+           NoDataValue=-9999, overwrite=TRUE)
+}
+
+for(j in 1:length(infile)){
+  print(paste0("processing file = ", j, " of ", length(infile) ,":", infile[j], " using updated mask"))
+  gdalmask(infile = infile[j], mask = mask_file2, outfile = infile[j], output_Raster = FALSE, overwrite=TRUE, verbose=TRUE)
+}
+
+## Check
+summary(raster(mask_file))
+summary(raster(mask_file2))
+## jgarber comment: Im not sure what the summary file is doing, doesn't seem to count the NA's right, but if you subtract the two rasters and plot them, you will see that some of the cells in the continent have a difference of 1, meaning  that they were masked, but the no data values in the data files are now 0's in the new mask file, this should still mask them out when you run gdalmask, as it masks out every cell where the mask does not equal 1. So i think we are good to go!(see the photo below. White is 0, black is a nodatavalue)
+freq(raster(mask_file))
+freq(raster(mask_file2))
+## jgarber comment: Ran the frequency and as you can see, it has removed some ones from the original mask and made them zeros, this should still work in the gdalmask function. From looking at the map, it seems like it is mostly picking up on large lakes? Looks like the great lakes, Lake victoria, and Lake Baikal are some of the removed cells.
+gdalinfo(mask_file, stats = TRUE)
+gdalinfo(mask_file2, stats = TRUE)
+
+lapply(infile, gdalinfo, stats = TRUE)
+
+
+# ## Extract cell-wise quartiles across GCM ####
 # quartiles <- c("q1", "q2", "q3")
 # 
+# ## Files by models
+# models <- tolower(models)
+# mod_files <- paste0("gcm_", models)
+# 
+# for (i in 1:length(models)){
+#   assign(mod_files[i], list.files(file.path(gsdms_data, "gcm_30s"), 
+#                                   pattern = models[i], full.names = TRUE))
+# }
 # for(region in regions){
 #   gcm <- list.files(gcm_reg_path, full.names = T, pattern = region)
 #   reg_mask <- readRDS(file.path(rdata_path, paste0("mask_", region, ".rds")))
@@ -493,101 +555,16 @@ gcm_quant_path <- file.path(regSSP_data, 'gcm_quant')
 #     }
 #   }
 # }
-file.copy(list.files(gcm_quant_path, full.names = TRUE), file.path(rdata_path))
-rm(list=setdiff(ls(), c("rdata_path", "gsdms_data", "regSSP_data")))
-gc()
-
-
-## Sync NAs - II ### 
-## For covariartes + bioq layers
-## Find min non-NA set values across mask, covariates and bioq layers and sync NAs 
-regions <- c("vn", "aus") ## or c("vn", "aus", "til")
-for (region in regions){
-  print(paste0("processing ", region, "... "))
-  reg_mask <- readRDS(file.path(rdata_path, paste0("mask_", region, ".rds")))
-  covariates <- readRDS(file.path(rdata_path, paste0("covariates_", region, ".rds")))
-  
-  files  <- list.files(file.path(rdata_path), pattern = region, full.names = TRUE)
-  bioq <- files[grepl("bioq", files)]
-  covs <- files[grepl("covariates", files)]
-  files <- c(bioq, covs)
-  for(j in 1:length(files)){
-    print(paste0("processing file = ", j, " of ", length(files) ,":", files[j]))
-    r <- readRDS(files[[j]])
-    for(i in 1:nlayers(r)){
-      print(paste0("processing layer = ", i, " of ", nlayers(r)))
-      reg_mask <- mask(reg_mask, r[[i]])
-    }
-  }
-  saveRDS(reg_mask, file = paste0(rdata_path, "/mask_", region, ".rds"))
-  
-  for(j in 1:length(files)){
-    print(paste0("processing file = ", j, " of ", length(files) ,":", files[j]))
-    r <- readRDS(files[[j]])
-    for(i in 1:nlayers(r)){
-      print(paste0("processing layer = ", i, " of ", nlayers(r)))
-      r[[i]] <- mask(r[[i]], reg_mask)
-    }
-    saveRDS(readAll(r), file = files[[j]])
-  }
-  print(paste0("summary for ", region, "... "))
-  print(paste0("NAs in mask = ", length(which(is.na(reg_mask[])))))
-  print(paste0("NAs in stack = ", length(which(is.na(r[[1]][])))))
-  ## only check againt first layer of stack r[[1]] (all layers inn stack are the same)
-  print(paste0("Which NAs in mask != NAs in layers: ", length(which(is.na(reg_mask[]) != is.na(r[[1]][])))))
-  print("=========================")
-}
-
-summary(reg_mask) # summary(reg_mask[])
-summary(as.data.frame(covariates))
-
-rm(list=setdiff(ls(), c("rdata_path", "gsdms_data", "regSSP_data")))
-gc()
-
-
-# ## Reduce raster size ####
-# ##  Remove NA values from covariate stack 
-# ##  Mask retained with NA values
-# regions <- c("vn", "aus", "til")
-# rdata_path2 <- file.path(regSSP_data, "nonatables") # change as per server: boab - "./nonatables"
-# if(!dir.exists(rdata_path2)){dir.create(rdata_path2)}
-# 
-# for(region in regions){
-#   print(paste0("processing ", region, "... "))
-#   reg_mask <- readRDS(file.path(rdata_path, paste0("mask_", region, ".rds")))
-#   reg_layers <- list.files(rdata_path, full.names = TRUE, pattern = region)
-#   ## files[grepl(paste0("(?=.*",region,")"), files, perl = TRUE)]
-#   reg_layers <- reg_layers[!grepl("mask", reg_layers)]
-#   
-#   for(j in 1:length(reg_layers)){
-#     print(paste0("processing file = ", j, " of ", length(reg_layers) ,":", reg_layers[j]))
-#     reg_stack <- readRDS(reg_layers[j])
-#     ind_nona <- which(!is.na(reg_mask[]))
-#     
-#     print(paste0("# layers in ", reg_layers[j], " = ", nlayers(reg_stack)))
-#     new_dat <- data.table()
-#     for(i in 1:nlayers(reg_stack)){
-#       print(paste0("processing layer = ", i, " of ", nlayers(reg_stack)))
-#       r <- reg_stack[[i]]
-#       r <- getValues(r)
-#       r <- r[ind_nona]
-#       new_dat[,paste0("new_dat", "$", names(reg_stack[[i]])) := r]    
-#     }
-#     saveRDS(new_dat, file = paste0(rdata_path2, basename(reg_layers[j]), "_nona.", "rds"))
-#     ## txt or csv files using fwrite much larger!
-#   }
-# }
-# 
+# file.copy(list.files(gcm_quant_path, full.names = TRUE), file.path(rdata_path))
 # rm(list=setdiff(ls(), c("rdata_path", "gsdms_data", "regSSP_data")))
 # gc()
 
-## Save raster stacks as data.table ####
 
 
-
-## 3. Bioregions layer (for Australia only) ####
+## Bioregions layer (for Australia only) ####
 ## Source: http://www.environment.gov.au/fed/catalog/search/resource/downloadData.page?uuid=%7B4A2321F0-DD57-454E-BE34-6FD4BDE64703%7D
 bioreg <- readOGR(file.path(regSSP_data, "IBRA7_regions", "ibra7_regions.shp"))
+
 reg_mask <- readRDS(file = file.path(rdata_path, "mask_aus.rds"))
 bioreg_rast <- reg_mask
 bioreg_rast[] <- NA
@@ -602,9 +579,13 @@ for(i in 1:l){
 }
 bioreg_rast <- mask(bioreg_rast, reg_mask)
 saveRDS(bioreg_rast, file.path(rdata_path, "bioregions_aus.rds"))
+writeRaster(bioreg_rast, file.path(rdata_path, "bioregions_aus.tif"))
 
 
-## 4. GTAP data ####
+
+## Sync NAs again?? ####
+
+## >> Prepare GTAP data ####
 regions <- c("aus", "vn")
 ssps <- paste0("ssp", 1:3)
 
@@ -665,7 +646,7 @@ for (region in regions){
 }
 
 
-## 7. Biodiversity data ####
+## >> Biodiversity data ####
 ## Australia:  https://doi.org/10.15468/dl.khlzmu
 ## Tile 29: https://doi.org/10.15468/dl.yapqxq
 ## Viet Nam: https://doi.org/10.15468/dl.nt0ftl
